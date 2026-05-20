@@ -123,6 +123,10 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   const currentStability = typeof stability === "number" ? stability : null;
   const stabilityDeltaPercent = currentStability != null && previousStability != null ? Math.round((currentStability - previousStability) * 100) : null;
   const postureErrorDelta = previousPostureErrorCount == null ? null : postureErrorCount - previousPostureErrorCount;
+  const stabilityDeltaReason =
+    currentStability != null && previousStability != null
+      ? `이번 세션 ${Math.round(currentStability * 100)}% - 직전 세션 ${Math.round(previousStability * 100)}% 기준입니다.`
+      : "직전 같은 운동 세션의 안정도 데이터가 부족해 비교가 어렵습니다.";
   const leftRightDiff = leftCount != null && rightCount != null ? Math.abs(leftCount - rightCount) : null;
   const balanceLabel = leftRightDiff == null ? "판단 불가" : leftRightDiff <= 1 ? "균형 좋음" : leftRightDiff <= 3 ? "조금 불균형" : "불균형 주의";
   const balanceToneClass = leftRightDiff == null ? "is-neutral" : leftRightDiff <= 1 ? "is-good" : leftRightDiff <= 3 ? "is-mid" : "is-bad";
@@ -251,7 +255,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
 
         <section className="panel result-panel">
           <span className="eyebrow">PANEL 5</span>
-          <h3 className="result-panel-title">전 세션 대비 개선도</h3>
+          <h3 className="result-panel-title">직전 세션 비교 리포트</h3>
           <div className="result-improvement-strip">
             <div>
               <span>안정도 변화</span>
@@ -266,6 +270,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
               </strong>
             </div>
           </div>
+          <p className="result-delta-copy">{stabilityDeltaReason}</p>
         </section>
 
         <section className="panel result-panel result-panel--wide">

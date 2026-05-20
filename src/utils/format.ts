@@ -75,6 +75,9 @@ const POSTURE_ERROR_LABELS: Record<string, string> = {
   shallow_depth: "깊이 부족",
   arm_position: "팔 위치 불안정",
   low_confidence: "인식 신뢰도 낮음",
+  target_recovering: "대상 재인식 중",
+  multi_person_detected: "여러 사람 감지됨",
+  target_lost: "대상 놓침",
 };
 
 const TARGET_STATUS_LABELS: Record<string, string> = {
