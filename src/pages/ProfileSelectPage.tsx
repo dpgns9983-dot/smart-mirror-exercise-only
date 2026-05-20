@@ -3,6 +3,7 @@ import type { NavigateFunction } from "react-router-dom";
 
 import WindowControls from "../components/WindowControls";
 import { createProfile, deleteProfile, hasRequiredProfileInput, listProfiles, profileNeedsBaseline, updateProfile } from "../services/api";
+import { getProfilePhoto, removeProfilePhoto } from "../services/profilePhoto";
 import { useAppState } from "../state/AppContext";
 import type { UserProfile } from "../types/domain";
 import { friendlyError } from "../utils/format";
@@ -131,6 +132,7 @@ export default function ProfileSelectPage({ navigate }: { navigate: NavigateFunc
     setError(null);
     try {
       await deleteProfile(profile.id);
+      removeProfilePhoto(profile.id);
       app.removeProfile(profile.id);
     } catch (caught) {
       setError(friendlyError(caught, "프로필을 삭제하지 못했습니다. 다시 시도해주세요."));
@@ -157,6 +159,7 @@ export default function ProfileSelectPage({ navigate }: { navigate: NavigateFunc
     const editing = editingId === profile.id;
     const enterLabel = `${profile.name} 프로필로 진입`;
     const className = `profile-card profile-card--${variant}${editing ? " is-editing" : ""}`;
+    const profilePhoto = getProfilePhoto(profile.id);
     const activateCard = () => {
       if (variant === "center") {
         proceed();
@@ -195,7 +198,9 @@ export default function ProfileSelectPage({ navigate }: { navigate: NavigateFunc
           </button>
         ) : null}
 
-        <span className="profile-card__avatar">{profile.name.slice(0, 1).toUpperCase()}</span>
+        <span className={`profile-card__avatar${profilePhoto ? " has-photo" : ""}`}>
+          {profilePhoto ? <img src={profilePhoto} alt="" /> : profile.name.slice(0, 1).toUpperCase()}
+        </span>
 
         {editing ? (
           <div className="profile-card__edit" onClick={(event) => event.stopPropagation()}>
@@ -251,7 +256,6 @@ export default function ProfileSelectPage({ navigate }: { navigate: NavigateFunc
       <header className="profile-carousel-hero">
         <span className="eyebrow">SMART MIRROR</span>
         <h1>프로필 선택</h1>
-        <p>PC3에 저장된 프로필을 불러와 운동 흐름을 시작합니다.</p>
       </header>
 
       <section className="profile-carousel-stage" aria-label="프로필 선택">

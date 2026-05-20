@@ -1866,6 +1866,8 @@
 .result-panel-title {
   margin: 0;
   font-size: 1.3rem;
+  color: var(--cyan);
+  text-shadow: 0 0 10px rgba(39, 226, 255, 0.14);
 }
 
 .result-panel .is-good {
@@ -1968,7 +1970,7 @@
 .result-posture-card span,
 .result-posture-card p,
 .result-posture-card li {
-  color: var(--muted);
+  color: rgba(156, 248, 255, 0.9);
 }
 
 .result-posture-card ul {

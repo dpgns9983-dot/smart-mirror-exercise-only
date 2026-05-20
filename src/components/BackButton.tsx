@@ -1,14 +1,4 @@
-import { useLocation, useNavigate } from "react-router-dom";
-
-const ROUTE_FALLBACKS: Record<string, string> = {
-  "/profile-select": "/profile-select",
-  "/baseline-check": "/profile-select",
-  "/baseline-setup": "/baseline-check",
-  "/mode": "/profile-select",
-  "/session": "/mode",
-  "/result": "/mode",
-  "/history": "/mode",
-};
+import { useNavigate } from "react-router-dom";
 
 type BackButtonProps = {
   fallbackTo?: string;
@@ -19,16 +9,20 @@ type BackButtonProps = {
 
 export default function BackButton({ fallbackTo, label = "이전", className = "", onBeforeBack }: BackButtonProps) {
   const navigate = useNavigate();
-  const location = useLocation();
 
   const goBack = () => {
     onBeforeBack?.();
     const historyIndex = typeof window !== "undefined" ? window.history.state?.idx : null;
-    if (typeof historyIndex === "number" && historyIndex > 0) {
+    const canUseBrowserBack =
+      typeof historyIndex === "number"
+        ? historyIndex > 0
+        : typeof window !== "undefined" && window.history.length > 1;
+
+    if (canUseBrowserBack) {
       navigate(-1);
       return;
     }
-    navigate(fallbackTo ?? ROUTE_FALLBACKS[location.pathname] ?? "/profile-select");
+    navigate(fallbackTo ?? "/profile-select");
   };
 
   return (

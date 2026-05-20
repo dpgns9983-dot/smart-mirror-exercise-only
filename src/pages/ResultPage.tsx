@@ -240,7 +240,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
 
         <section className="panel result-panel">
           <span className="eyebrow">PANEL 4</span>
-          <h3 className="result-panel-title">자세 오류 요약</h3>
+          <h3 className="result-panel-title">자세 요약</h3>
           <p className="result-delta-copy">총 오류: {postureErrorCount}개</p>
           <div className="result-posture-card">
             {postureErrorTop3.length ? (
@@ -255,7 +255,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
 
         <section className="panel result-panel">
           <span className="eyebrow">PANEL 5</span>
-          <h3 className="result-panel-title">직전 세션 비교 리포트</h3>
+          <h3 className="result-panel-title">지난번 운동이랑 비교</h3>
           <div className="result-improvement-strip">
             <div>
               <span>안정도 변화</span>

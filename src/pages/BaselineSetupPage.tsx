@@ -4,6 +4,7 @@ import type { NavigateFunction } from "react-router-dom";
 import BackButton from "../components/BackButton";
 import { useCamera } from "../hooks/useCamera";
 import { captureBaseline, getBaselineStatus } from "../services/api";
+import { saveProfilePhoto } from "../services/profilePhoto";
 import { useAppState } from "../state/AppContext";
 import type { BaselineSlot } from "../types/domain";
 import { friendlyError } from "../utils/format";
@@ -13,7 +14,7 @@ const SLOT_LABEL: Record<BaselineSlot, string> = {
   face_front: "얼굴 정면",
   body_front_full: "전신 정면",
 };
-const AUTO_CAPTURE_SECONDS = 3;
+const AUTO_CAPTURE_RETRY_MS = 900;
 
 export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunction }) {
   const app = useAppState();
@@ -23,7 +24,7 @@ export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunc
   const [submitting, setSubmitting] = useState(false);
   const [message, setMessage] = useState("카메라를 켜고 기준 촬영을 준비하고 있습니다.");
   const [error, setError] = useState<string | null>(null);
-  const [autoCountdown, setAutoCountdown] = useState(AUTO_CAPTURE_SECONDS);
+  const [autoAttempt, setAutoAttempt] = useState(0);
   const [retrySeed, setRetrySeed] = useState(0);
 
   const currentSlot = useMemo(() => SLOT_ORDER.find((slot) => !completed[slot]) ?? null, [completed]);
@@ -56,7 +57,7 @@ export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunc
     [app, navigate, profile],
   );
 
-  const capture = useCallback(async () => {
+  const capture = useCallback(async (options: { softRetry?: boolean } = {}) => {
     if (!profile || !currentSlot || submitting || camera.status !== "ready") {
       return;
     }
@@ -64,7 +65,7 @@ export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunc
     const slot = currentSlot;
     setSubmitting(true);
     setError(null);
-    setMessage(`${SLOT_LABEL[slot]} 촬영을 PC3에 저장하고 있습니다.`);
+    setMessage(`${SLOT_LABEL[slot]} 프레임을 PC3가 확인하고 있습니다.`);
     try {
       const blob = await camera.capture(slot === "face_front" ? 0.72 : 0.84);
       if (!blob) {
@@ -72,12 +73,20 @@ export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunc
       }
       const result = await captureBaseline(profile.id, slot, blob);
       if (!result.valid) {
+        if (options.softRetry) {
+          setMessage(result.reason ?? `${SLOT_LABEL[slot]} 위치가 맞으면 자동으로 저장됩니다.`);
+          setAutoAttempt((value) => value + 1);
+          return;
+        }
         throw new Error(result.reason ?? "기준 촬영을 인식하지 못했습니다. 자세를 맞추고 다시 시도해주세요.");
+      }
+      if (slot === "face_front") {
+        await saveProfilePhoto(profile.id, blob);
       }
       const next = { ...completed, [slot]: true };
       setCompleted(next);
       app.updateActiveProfile({ baselineSlots: next });
-      setMessage(`${SLOT_LABEL[slot]} 저장 완료.`);
+      setMessage(`${SLOT_LABEL[slot]} OK. 저장 완료.`);
       await finalize(next);
     } catch (caught) {
       setError(friendlyError(caught, "기준 촬영을 저장하지 못했습니다. 다시 시도해주세요."));
@@ -92,28 +101,20 @@ export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunc
       return;
     }
 
-    setAutoCountdown(AUTO_CAPTURE_SECONDS);
-    setMessage(`${SLOT_LABEL[currentSlot]} 자세를 맞춰주세요. ${AUTO_CAPTURE_SECONDS}초 뒤 자동 촬영합니다.`);
+    setMessage(`${SLOT_LABEL[currentSlot]} 프레임을 맞추면 PC3 확인 후 자동으로 저장합니다.`);
 
     let cancelled = false;
-    const timer = window.setInterval(() => {
-      setAutoCountdown((current) => {
-        if (current <= 1) {
-          window.clearInterval(timer);
-          if (!cancelled) {
-            void capture();
-          }
-          return 0;
-        }
-        return current - 1;
-      });
-    }, 1000);
+    const timer = window.setTimeout(() => {
+      if (!cancelled) {
+        void capture({ softRetry: true });
+      }
+    }, AUTO_CAPTURE_RETRY_MS);
 
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      window.clearTimeout(timer);
     };
-  }, [camera.status, capture, currentSlot, error, profile, retrySeed, submitting]);
+  }, [autoAttempt, camera.status, capture, currentSlot, error, profile, retrySeed, submitting]);
 
   if (!profile) {
     return (
@@ -128,7 +129,8 @@ export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunc
 
   const retryAutoCapture = () => {
     setError(null);
-    setAutoCountdown(AUTO_CAPTURE_SECONDS);
+    setMessage(currentSlot ? `${SLOT_LABEL[currentSlot]} 프레임을 다시 확인합니다.` : "기준 촬영을 다시 확인합니다.");
+    setAutoAttempt((value) => value + 1);
     setRetrySeed((value) => value + 1);
   };
 
@@ -146,10 +148,10 @@ export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunc
       ) : null}
       <div className={`capture-guide capture-guide--${currentSlot ?? "done"}`} aria-hidden="true" />
       {currentSlot && camera.status === "ready" ? (
-        <aside className={`capture-countdown ${submitting ? "is-saving" : ""}`} aria-live="polite">
-          <span>{submitting ? "저장 중" : "자동 촬영"}</span>
-          <strong>{submitting ? "..." : autoCountdown}</strong>
-          <em>{submitting ? "PC3가 촬영본을 확인하고 있습니다." : `${SLOT_LABEL[currentSlot]} 위치에 맞춰주세요.`}</em>
+        <aside className={`capture-countdown ${submitting ? "is-saving" : "is-scanning"}`} aria-live="polite">
+          <span>{submitting ? "저장 확인" : "자동 인식"}</span>
+          <strong>{submitting ? "..." : "READY"}</strong>
+          <em>{submitting ? "PC3가 촬영본을 확인하고 있습니다." : `${SLOT_LABEL[currentSlot]} 프레임이 맞으면 자동 저장합니다.`}</em>
         </aside>
       ) : null}
       <aside className="capture-toast" role={error ? "alert" : "status"}>
@@ -170,11 +172,11 @@ export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunc
         </div>
         {error ? (
           <button type="button" className="button button--primary" onClick={retryAutoCapture} disabled={!currentSlot || camera.status !== "ready"}>
-            다시 자동 촬영
+            다시 자동 확인
           </button>
         ) : (
           <button type="button" className="button button--ghost" onClick={() => void capture()} disabled={!currentSlot || submitting || camera.status !== "ready"}>
-            지금 촬영
+            지금 확인
           </button>
         )}
       </footer>

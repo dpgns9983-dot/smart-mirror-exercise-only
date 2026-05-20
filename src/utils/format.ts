@@ -65,6 +65,13 @@ const ADJUSTMENT_LABELS: Record<string, string> = {
 
 const POSTURE_ERROR_LABELS: Record<string, string> = {
   partial_range: "동작 범위 부족",
+  partial_body: "몸 일부만 인식",
+  partial_body_detected: "몸 일부만 인식",
+  body_partial: "몸 일부만 인식",
+  full_body_missing: "전신 인식 필요",
+  upper_body_only: "상체만 인식됨",
+  lower_body_only: "하체만 인식됨",
+  no_full_body: "전신 인식 필요",
   knee_valgus: "무릎 안쪽 무너짐",
   knee_inward: "무릎 안쪽 이동",
   back_rounding: "등 말림",
@@ -75,6 +82,8 @@ const POSTURE_ERROR_LABELS: Record<string, string> = {
   shallow_depth: "깊이 부족",
   arm_position: "팔 위치 불안정",
   low_confidence: "인식 신뢰도 낮음",
+  fast_only: "속도가 너무 빨라요",
+  too_fast: "속도가 너무 빨라요",
   target_recovering: "대상 재인식 중",
   multi_person_detected: "여러 사람 감지됨",
   target_lost: "대상 놓침",
@@ -96,8 +105,22 @@ const COACH_PURPOSE_LABELS: Record<string, string> = {
   post_exercise_coaching: "운동 후 코칭",
 };
 
+const MEASUREMENT_QUALITY_LABELS: Record<string, string> = {
+  pc2_ready: "측정 완료",
+  ready: "측정 완료",
+  good: "좋음",
+  low_quality: "인식 품질 낮음",
+  low_confidence: "인식 신뢰도 낮음",
+  partial_body: "몸 일부만 인식",
+  partial_body_detected: "몸 일부만 인식",
+  body_partial: "몸 일부만 인식",
+  no_pose: "자세 미인식",
+  no_full_body: "전신 인식 필요",
+};
+
 function humanizeFallback(value: string): string {
-  return value.replace(/_/g, " ");
+  const text = value.replace(/_/g, " ").trim();
+  return /[A-Za-z]/.test(text) ? "확인 필요" : text;
 }
 
 function normalizeLookupKey(value: string): string {
@@ -145,6 +168,14 @@ export function formatCoachPurpose(value?: string | null): string {
     return "";
   }
   return COACH_PURPOSE_LABELS[value] ?? humanizeFallback(value);
+}
+
+export function formatMeasurementQuality(value?: string | null): string {
+  if (!value) {
+    return "기록 없음";
+  }
+  const normalized = normalizeLookupKey(value);
+  return MEASUREMENT_QUALITY_LABELS[value] ?? MEASUREMENT_QUALITY_LABELS[normalized] ?? humanizeFallback(value);
 }
 
 export function todayIso(): string {

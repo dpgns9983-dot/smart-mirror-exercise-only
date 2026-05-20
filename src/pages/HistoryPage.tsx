@@ -3,16 +3,16 @@ import { useLocation, type NavigateFunction } from "react-router-dom";
 
 import AppShell from "../components/AppShell";
 import { getCoachLogs, getRoutineCalendar, getSessionResult } from "../services/api";
+import { dayNotePreview, readDayNote, saveDayNote } from "../services/dayNotes";
 import { useAppState } from "../state/AppContext";
 import type {
   CoachLog,
-  EvidenceItem,
   RoutineCalendar,
   RoutineCalendarDay,
   SessionFinalResponse,
   WorkoutResult,
 } from "../types/domain";
-import { formatEvidenceMeta, formatExerciseName, friendlyError, monthEndIso, monthStartIso, offsetDate, shortDate, todayIso } from "../utils/format";
+import { formatExerciseName, friendlyError, monthEndIso, monthStartIso, offsetDate, shortDate, todayIso } from "../utils/format";
 
 type SessionRecordGroup = {
   key: string;
@@ -100,21 +100,8 @@ function fallbackDisplayLines(workout: WorkoutResult): string[] {
   return arrayOfStrings(pc2Payload?.display_lines);
 }
 
-function fallbackEvidence(workout: WorkoutResult): EvidenceItem[] {
-  const result = workoutResultRecord(workout);
-  const pc2Payload = asRecord(result?.pc2_payload);
-  return Array.isArray(pc2Payload?.evidence) ? (pc2Payload.evidence.filter((item) => typeof item === "object" && item !== null) as EvidenceItem[]) : [];
-}
-
 function logDisplayLines(log: CoachLog): string[] {
   return arrayOfStrings(log.pc2Output?.display_lines ?? log.finalResponse?.pc2_payload?.display_lines);
-}
-
-function logEvidence(log: CoachLog): EvidenceItem[] {
-  if (Array.isArray(log.pc2Output?.evidence)) {
-    return log.pc2Output.evidence.filter((item) => typeof item === "object" && item !== null) as EvidenceItem[];
-  }
-  return log.finalResponse?.pc2_payload?.evidence ?? [];
 }
 
 function coachTitle(log: CoachLog): string {
@@ -255,23 +242,6 @@ function sessionDisplayLines(group: SessionRecordGroup, session?: SessionFinalRe
   return representativeLog ? logDisplayLines(representativeLog) : [];
 }
 
-function sessionEvidence(group: SessionRecordGroup, session?: SessionFinalResponse, representativeLog?: CoachLog): EvidenceItem[] {
-  if (session?.coaching?.pc2_payload?.evidence?.length) {
-    return session.coaching.pc2_payload.evidence;
-  }
-  const workoutEvidence = group.workouts.flatMap(fallbackEvidence);
-  if (workoutEvidence.length) {
-    return workoutEvidence;
-  }
-  return representativeLog ? logEvidence(representativeLog) : [];
-}
-
-function evidenceLabel(item: EvidenceItem): string {
-  const title = cleanDisplayText(item.title || item.source_title || item.summary || "운동 근거");
-  const meta = formatEvidenceMeta(item.exercise, item.category);
-  return meta ? `${title} · ${meta}` : title;
-}
-
 export default function HistoryPage({ navigate }: { navigate: NavigateFunction }) {
   const app = useAppState();
   const profile = app.activeProfile;
@@ -288,6 +258,7 @@ export default function HistoryPage({ navigate }: { navigate: NavigateFunction }
   const [sessionErrors, setSessionErrors] = useState<Record<string, string>>({});
   const [expandedCoachGroups, setExpandedCoachGroups] = useState<Record<string, boolean>>({});
   const [showSessionDetails, setShowSessionDetails] = useState(false);
+  const [dayMemo, setDayMemo] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -315,6 +286,13 @@ export default function HistoryPage({ navigate }: { navigate: NavigateFunction }
     setSelectedDate(queryDate);
     setShowSessionDetails(false);
   }, [queryDate]);
+
+  useEffect(() => {
+    if (!profile) {
+      return;
+    }
+    setDayMemo(readDayNote(profile.id, selectedDate));
+  }, [profile, selectedDate]);
 
   useEffect(() => {
     if (!profile) {
@@ -373,10 +351,6 @@ export default function HistoryPage({ navigate }: { navigate: NavigateFunction }
       groupsWithSession.flatMap((item) => sessionDisplayLines(item.group, item.session, item.representativeLog)),
       5,
     );
-    const evidence = uniqueCleanStrings(
-      groupsWithSession.flatMap((item) => sessionEvidence(item.group, item.session, item.representativeLog).map(evidenceLabel)),
-      5,
-    );
     const qualities = groupsWithSession.map((item) => groupQuality(item.group, item.session));
     const hasLowQuality = qualities.some((quality) => quality.includes("낮") || quality.includes("미인식"));
     const qualityLabel = qualities.length ? (hasLowQuality ? "확인 필요" : "양호") : "기록 없음";
@@ -390,7 +364,6 @@ export default function HistoryPage({ navigate }: { navigate: NavigateFunction }
       avgStability,
       qualityLabel,
       displayLines: displayLines.length ? displayLines : [fallbackLine],
-      evidence,
     };
   }, [selectedCoachLogs, selectedDate, selectedDay?.focus, sessionGroups, sessionResults]);
 
@@ -418,7 +391,16 @@ export default function HistoryPage({ navigate }: { navigate: NavigateFunction }
   }, [sessionErrors, sessionIds, sessionResults]);
 
   const goToDate = (date: string) => {
-    navigate(`/history?date=${encodeURIComponent(date)}`);
+    navigate(`/history?date=${encodeURIComponent(date)}`, { replace: true });
+  };
+
+  const updateMemo = (value: string) => {
+    if (!profile) {
+      return;
+    }
+    const clipped = value.slice(0, 240);
+    setDayMemo(clipped);
+    saveDayNote(profile.id, selectedDate, clipped);
   };
 
   if (!profile) {
@@ -457,14 +439,29 @@ export default function HistoryPage({ navigate }: { navigate: NavigateFunction }
           </div>
         </section>
 
-        <section className="panel history-summary-panel">
-          <span className="eyebrow">SUMMARY</span>
-          <h2>그날 요약</h2>
-          <div className="history-kpi-grid">
-            <div><span>상태</span><strong>{calendarStatus(selectedDay)}</strong></div>
-            <div><span>세션</span><strong>{sessionGroups.length}</strong></div>
-            <div><span>운동 결과</span><strong>{selectedWorkouts.length}</strong></div>
-            <div><span>코칭</span><strong>{selectedCoachLogs.length}</strong></div>
+        <section className="panel history-summary-panel history-summary-panel--split">
+          <div className="history-summary-main">
+            <span className="eyebrow">SUMMARY</span>
+            <h2>그날 요약</h2>
+            <div className="history-kpi-grid">
+              <div><span>상태</span><strong>{calendarStatus(selectedDay)}</strong></div>
+              <div><span>세션</span><strong>{sessionGroups.length}</strong></div>
+              <div><span>운동 결과</span><strong>{selectedWorkouts.length}</strong></div>
+              <div><span>코칭</span><strong>{selectedCoachLogs.length}</strong></div>
+            </div>
+          </div>
+          <div className="history-memo-pad">
+            <div>
+              <span className="eyebrow">MEMO</span>
+              <strong>메모장</strong>
+            </div>
+            <textarea
+              value={dayMemo}
+              onChange={(event) => updateMemo(event.target.value)}
+              maxLength={240}
+              placeholder="오늘 느낀 점이나 다음에 볼 내용을 적어두세요."
+            />
+            <em>{dayNotePreview(dayMemo) ? `달력 표시: ${dayNotePreview(dayMemo)}` : "메모를 적으면 루틴 달력에도 짧게 보입니다."}</em>
           </div>
         </section>
 
@@ -500,11 +497,6 @@ export default function HistoryPage({ navigate }: { navigate: NavigateFunction }
                 ))}
               </div>
             </div>
-            {dayDigest.evidence.length ? (
-              <div className="history-evidence-list">
-                {dayDigest.evidence.map((item, index) => <span key={`${item}-${index}`}>{item}</span>)}
-              </div>
-            ) : null}
           </article>
 
           {showSessionDetails ? (
@@ -517,7 +509,6 @@ export default function HistoryPage({ navigate }: { navigate: NavigateFunction }
                 const representativeLog = sortedLogs[0];
                 const extraLogs = sortedLogs.slice(1);
                 const displayLines = uniqueCleanStrings(sessionDisplayLines(group, session, representativeLog), 6);
-                const evidence = sessionEvidence(group, session, representativeLog);
                 const summary = cleanDisplayText(session?.coaching?.summary ?? (representativeLog ? coachTitle(representativeLog) : "저장된 운동 결과입니다."));
                 const isExpanded = Boolean(expandedCoachGroups[group.key]);
 
@@ -544,12 +535,6 @@ export default function HistoryPage({ navigate }: { navigate: NavigateFunction }
                       <ul className="history-line-list">
                         {displayLines.map((line, lineIndex) => <li key={`${line}-${lineIndex}`}>{line}</li>)}
                       </ul>
-                    ) : null}
-
-                    {evidence.length ? (
-                      <div className="history-evidence-list">
-                        {evidence.slice(0, 6).map((item, evidenceIndex) => <span key={`${item.id ?? evidenceIndex}`}>{evidenceLabel(item)}</span>)}
-                      </div>
                     ) : null}
 
                     {extraLogs.length ? (

@@ -132,18 +132,18 @@ function selectedRoutineTitle(day: RoutineDay | null): string {
   return clampText(`${dayIndex}일차 - ${exerciseLabel}`, TEXT_LIMITS.title);
 }
 
-function buildRoutineReasonCards(day: RoutineDay | null, estimatedMinutes?: number | null): RoutineReasonCard[] {
+function buildRoutineReasonCards(day: RoutineDay | null, estimatedMinutes?: number | null, searching = false): RoutineReasonCard[] {
   if (!day) {
     return [
       {
-        label: "대기 상태",
-        title: "오늘 루틴을 준비하고 있어요",
-        body: "아직 배정된 루틴이 없습니다. 추천 루틴 생성 버튼을 누르면 바로 오늘 루틴을 받아올 수 있어요.",
+        label: searching ? "확인 중" : "대기",
+        title: searching ? "루틴 찾는 중" : "루틴 없음",
+        body: searching ? "PC3에서 오늘 루틴을 확인하고 있습니다." : "달력에 루틴이 배정되면 여기에 표시됩니다.",
       },
       {
-        label: "다음 단계",
-        title: "루틴 생성 후 운동 시작",
-        body: "루틴이 생성되면 운동 목록과 추천 이유가 자동으로 채워지고, 운동 시작 버튼이 활성화됩니다.",
+        label: "운동 준비",
+        title: "오늘 루틴 확인 후 시작",
+        body: "오늘 날짜에 루틴이 확인되면 운동 시작 버튼이 활성화됩니다.",
       },
     ];
   }
@@ -209,17 +209,17 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
   const hiddenExerciseCount = Math.max(0, (selectedDayDetail?.exercises.length ?? 0) - visibleExercises.length);
   const selectedSummary = selectedDayLoading
     ? "선택한 날짜의 루틴을 불러오는 중입니다."
-    : clampText(
-        selectedDayDetail
-          ? chooseRoutineText(selectedDayDetail.summary, selectedDayDetail.weeklyFocus) || "오늘 운동을 간단히 확인하세요."
-          : isTodaySelected
-            ? "오늘 배정된 루틴이 아직 없습니다. 추천 루틴 생성으로 바로 준비할 수 있어요."
+    : routineLoading && !selectedDayDetail
+      ? "PC3에서 오늘 루틴을 찾고 있습니다."
+      : clampText(
+          selectedDayDetail
+            ? chooseRoutineText(selectedDayDetail.summary, selectedDayDetail.weeklyFocus) || "오늘 운동을 간단히 확인하세요."
             : "선택한 날짜에 등록된 루틴이 없습니다.",
-        TEXT_LIMITS.reasonBody,
-      );
+          TEXT_LIMITS.reasonBody,
+        );
   const routineReasonCards = useMemo(
-    () => buildRoutineReasonCards(selectedDayDetail, selectedRoutine?.estimatedMinutes),
-    [selectedDayDetail, selectedRoutine?.estimatedMinutes],
+    () => buildRoutineReasonCards(selectedDayDetail, selectedRoutine?.estimatedMinutes, routineLoading),
+    [routineLoading, selectedDayDetail, selectedRoutine?.estimatedMinutes],
   );
 
   const hydrateCalendarLabels = useCallback(
@@ -262,13 +262,26 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
         throw new Error("기준 촬영이 완료되어야 오늘 운동을 시작할 수 있습니다.");
       }
 
-      const calendarData = await getRoutineCalendar(profile.id, monthStartIso(today), monthEndIso(today));
-      setCalendar(calendarData);
-      setCalendarNotes(readDayNotes(profile.id));
-      hydrateCalendarLabels(calendarData.days);
-      setSelectedDate((current) => current || today);
+      const readCalendar = async () => {
+        const nextCalendar = await getRoutineCalendar(profile.id, monthStartIso(today), monthEndIso(today));
+        setCalendar(nextCalendar);
+        setCalendarNotes(readDayNotes(profile.id));
+        hydrateCalendarLabels(nextCalendar.days);
+        setSelectedDate((current) => current || today);
+        return nextCalendar;
+      };
 
-      const todayInCalendar = calendarData.days.find((day) => day.date === today);
+      let calendarData = await readCalendar();
+      let todayInCalendar = calendarData.days.find((day) => day.date === today);
+
+      if (!todayInCalendar?.routineId) {
+        setRoutineLoading(true);
+        await generateRoutine(profile);
+        calendarData = await readCalendar();
+        todayInCalendar = calendarData.days.find((day) => day.date === today);
+        setRoutineLoading(false);
+      }
+
       if (!todayInCalendar?.routineId) {
         setTodayDay(null);
         setSelectedDayDetail((current) => (selectedDate === today ? null : current));
@@ -285,7 +298,11 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
       app.setSelectedRoutine(routineFromDay(day), day);
     } catch (caught) {
       setTodayDay(null);
-      setError(friendlyError(caught, "오늘 운동 정보를 불러오지 못했습니다. 다시 시도해주세요."));
+      setRoutineLoading(false);
+      const fallback = caught instanceof Error && caught.message.includes("기준 촬영")
+        ? caught.message
+        : "오늘 루틴을 찾지 못했습니다. 다시 시도해주세요.";
+      setError(friendlyError(caught, fallback));
     } finally {
       setLoading(false);
     }
@@ -327,10 +344,10 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
           setCalendarExerciseLabels((current) => ({ ...current, [selectedDate]: compactExerciseNames(day.exercises) }));
         }
       })
-      .catch((caught) => {
+      .catch(() => {
         if (!cancelled) {
           setSelectedDayDetail(null);
-          setError(friendlyError(caught, "선택한 날짜의 루틴을 불러오지 못했습니다. 다시 시도해주세요."));
+          setError("선택한 날짜의 루틴을 불러오지 못했습니다. 다시 시도해주세요.");
         }
       })
       .finally(() => {
@@ -347,19 +364,6 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
     return null;
   }
 
-  const generate = async () => {
-    setRoutineLoading(true);
-    setError(null);
-    try {
-      await generateRoutine(profile);
-      await loadHome();
-    } catch (caught) {
-      setError(friendlyError(caught, "추천 루틴을 불러오지 못했습니다. 다시 시도해주세요."));
-    } finally {
-      setRoutineLoading(false);
-    }
-  };
-
   const startWorkout = () => {
     if (!todayRoutine || !todayDay || !canStart) {
       setError("운동 시작은 오늘 날짜에 등록된 루틴만 가능합니다.");
@@ -371,11 +375,16 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
   };
 
   return (
-    <AppShell title="ROUTINE" step="STEP 4">
+    <AppShell title="루틴" step="4단계">
       {error ? (
         <div className="inline-alert inline-alert--error">
           <span>{error}</span>
-          <button type="button" onClick={() => void loadHome()}>
+          <button
+            type="button"
+            onClick={() => {
+              void loadHome();
+            }}
+          >
             재시도
           </button>
         </div>
@@ -386,7 +395,7 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
         <section className="panel calendar-panel calendar-panel--mode">
           <div className="panel-heading-row">
             <div>
-              <span className="eyebrow">CALENDAR</span>
+              <span className="eyebrow">달력</span>
               <h2>루틴 달력</h2>
             </div>
             <button type="button" className="button button--ghost" onClick={() => navigate(`/history?date=${encodeURIComponent(selectedDate)}`)}>
@@ -422,8 +431,8 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
         </section>
 
         <section className={`panel today-panel today-panel--mode ${hasSelectedRoutine ? "" : "today-panel--empty"}`.trim()}>
-          <span className="eyebrow">{isTodaySelected ? "TODAY" : shortDate(selectedDate)}</span>
-          <h2>{selectedRoutineTitle(selectedDayDetail)}</h2>
+          <span className="eyebrow">{isTodaySelected ? "오늘" : shortDate(selectedDate)}</span>
+          <h2>{routineLoading && !selectedDayDetail ? "오늘 루틴 찾는 중" : selectedRoutineTitle(selectedDayDetail)}</h2>
           <p>{selectedSummary}</p>
           <div className="routine-list routine-list--today">
             {visibleExercises.map((exercise, index) => (
@@ -441,9 +450,9 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
           </div>
           <div className="routine-reason-card">
             <div className="routine-reason-card__head">
-              <span className="eyebrow">RECOMMENDATION</span>
+              <span className="eyebrow">추천 이유</span>
               <strong>왜 이 루틴인가요?</strong>
-              <p>{selectedDayDetail ? "운동 전에 알아두면 좋은 내용만 간단히 정리했어요." : "루틴이 준비되면 추천 이유가 표시됩니다."}</p>
+              <p>{selectedDayDetail ? "운동 전에 알아두면 좋은 내용만 간단히 정리했어요." : "PC3에서 오늘 루틴을 찾고 있습니다."}</p>
             </div>
             <div className="routine-reason-grid">
               {routineReasonCards.map((card) => (
@@ -457,17 +466,9 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
           </div>
           <div className="footer-actions">
             <button type="button" className="button button--primary" onClick={startWorkout} disabled={!canStart}>
-              {isTodaySelected ? (canStart ? "운동 시작" : "루틴 준비 후 시작") : "오늘만 시작 가능"}
+              {routineLoading ? "루틴 찾는 중" : isTodaySelected ? (canStart ? "운동 시작" : "오늘 루틴 확인 중") : "오늘만 시작 가능"}
             </button>
-            {isTodaySelected && !canStart ? (
-              <button type="button" className="button button--ghost" onClick={() => void generate()} disabled={routineLoading}>
-                {routineLoading ? "루틴 준비 중" : "추천 루틴 생성"}
-              </button>
-            ) : null}
           </div>
-          {isTodaySelected && !canStart ? (
-            <p className="today-cta-copy">지금 추천 루틴을 생성하면 오늘 루틴을 바로 시작할 수 있어요.</p>
-          ) : null}
         </section>
       </div>
     </AppShell>
