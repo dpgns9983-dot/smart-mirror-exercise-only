@@ -5,7 +5,7 @@ import AppShell from "../components/AppShell";
 import { getProgress, getSessionResult } from "../services/api";
 import { useAppState } from "../state/AppContext";
 import type { ProgressResponse, SessionFinalResponse } from "../types/domain";
-import { formatDuration, formatExerciseName, formatWeightDelta, todayIso } from "../utils/format";
+import { formatDuration, formatExerciseName, formatPostureError, formatWeightDelta, todayIso } from "../utils/format";
 import {
   composeImprovementLines,
   composePositiveLine,
@@ -36,6 +36,21 @@ function toStringArray(value: unknown): string[] {
     return [];
   }
   return value.map(String).filter((item) => item.trim().length > 0);
+}
+
+function humanize(value: string): string {
+  return value.replace(/_/g, " ");
+}
+
+function toEntryList(value: unknown, limit = 6): Array<[string, string]> {
+  if (!value || typeof value !== "object") {
+    return [];
+  }
+  const payload = value as Record<string, unknown>;
+  return Object.entries(payload)
+    .filter(([, item]) => ["string", "number", "boolean"].includes(typeof item))
+    .slice(0, limit)
+    .map(([key, item]) => [humanize(key), String(item)]);
 }
 
 export default function ResultPage({ navigate }: { navigate: NavigateFunction }) {
@@ -106,6 +121,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
 
   const summary = progress?.workoutSummary;
   const exerciseLabel = useMemo(() => formatExerciseName(exerciseType), [exerciseType]);
+  const statusLabel = displayResult?.status === "skipped" ? "건너뜀" : "완료";
   const previousWorkout = useMemo(() => {
     const workouts = progress?.recentWorkouts ?? [];
     return workouts.find((item) => {
@@ -127,6 +143,17 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   const leftRightDiff = leftCount != null && rightCount != null ? Math.abs(leftCount - rightCount) : null;
   const balanceLabel = leftRightDiff == null ? "판단 불가" : leftRightDiff <= 1 ? "균형 좋음" : leftRightDiff <= 3 ? "조금 불균형" : "불균형 주의";
   const balanceToneClass = leftRightDiff == null ? "is-neutral" : leftRightDiff <= 1 ? "is-good" : leftRightDiff <= 3 ? "is-mid" : "is-bad";
+  const avgStability = summary?.avgStabilityScore ?? null;
+  const stabilityVsAverage = currentStability != null && avgStability != null ? Math.round((currentStability - avgStability) * 100) : null;
+  const qualityToneClass =
+    measurementQuality === "low_quality" || measurementQuality === "poor"
+      ? "is-bad"
+      : measurementQuality === "fair"
+        ? "is-mid"
+        : "is-good";
+  const byExercise = Object.entries(summary?.byExercise ?? {}).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
+  const maxByExercise = Math.max(...byExercise.map(([, value]) => value), 1);
+  const baselineDiffEntries = toEntryList(displayResult?.baseline_diff, 8);
 
   if (!result) {
     return (
@@ -172,11 +199,45 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
       }
     >
       <div className="result-grid">
-        <section className="panel result-hero">
-          <span className="eyebrow">SESSION</span>
+        <section className="panel result-hero result-panel">
+          <span className="eyebrow">PANEL 1</span>
+          <h3 className="result-panel-title">오늘 운동 요약</h3>
           <h2>{exerciseLabel}</h2>
           <strong>{displayResult?.status === "skipped" ? "SKIP" : count}</strong>
           <p>{message}</p>
+          <div className="result-kpi-mini">
+            <div>
+              <span>상태</span>
+              <strong>{statusLabel}</strong>
+            </div>
+            <div>
+              <span>운동</span>
+              <strong>{exerciseLabel}</strong>
+            </div>
+            <div>
+              <span>횟수</span>
+              <strong>{count}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="panel result-panel">
+          <span className="eyebrow">PANEL 2</span>
+          <h3 className="result-panel-title">자세 안정도 점수</h3>
+          <div className="result-meter">
+            <div className="result-meter__track">
+              <div className="result-meter__fill" style={{ width: `${Math.max(0, Math.min(100, stabilityPercent ?? 0))}%` }} />
+            </div>
+            <strong>{stabilityPercent == null ? "-" : `${stabilityPercent}%`}</strong>
+          </div>
+          <p className="result-delta-copy">
+            평균 대비: {stabilityVsAverage == null ? "비교 불가" : `${stabilityVsAverage > 0 ? "+" : ""}${stabilityVsAverage}%`}
+          </p>
+        </section>
+
+        <section className="panel result-panel">
+          <span className="eyebrow">PANEL 3</span>
+          <h3 className="result-panel-title">좌우 밸런스</h3>
           <div className="result-kpi-mini">
             <div>
               <span>왼쪽</span>
@@ -187,34 +248,43 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
               <strong>{rightCount ?? "-"}</strong>
             </div>
             <div>
-              <span>신뢰도</span>
-              <strong>{measurementConfidencePercent == null ? "-" : `${measurementConfidencePercent}%`}</strong>
+              <span>차이</span>
+              <strong>{leftRightDiff ?? "-"}</strong>
             </div>
           </div>
           <div className={`result-balance-chip ${balanceToneClass}`}>
-            <span>좌우 밸런스</span>
-            <strong>{leftRightDiff == null ? "-" : `차이 ${leftRightDiff}회`}</strong>
-            <em>{balanceLabel}</em>
+            <span>밸런스 상태</span>
+            <strong>{balanceLabel}</strong>
           </div>
         </section>
 
-        <section className="panel">
-          <span className="eyebrow">COACHING</span>
-          <h2>코칭 요약</h2>
-          {positiveMessage && <p><strong>{positiveMessage}</strong></p>}
-          {improvementLines.length ? (
-            <>
-              <p style={{ marginTop: "0.5em", fontSize: "0.9em", opacity: 0.8 }}>다음 세트에서 개선할 점</p>
-              <ul>
-                {improvementLines.map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
-              </ul>
-            </>
-          ) : null}
+        <section className="panel result-panel">
+          <span className="eyebrow">PANEL 4</span>
+          <h3 className="result-panel-title">측정 신뢰도/품질</h3>
+          <div className="result-kpi-mini">
+            <div>
+              <span>신뢰도</span>
+              <strong>{measurementConfidencePercent == null ? "-" : `${measurementConfidencePercent}%`}</strong>
+            </div>
+            <div>
+              <span>품질</span>
+              <strong>{humanize(measurementQuality)}</strong>
+            </div>
+            <div>
+              <span>판정</span>
+              <strong className={qualityToneClass}>{qualityToneClass === "is-good" ? "양호" : qualityToneClass === "is-mid" ? "보통" : "주의"}</strong>
+            </div>
+          </div>
+        </section>
+
+        <section className="panel result-panel">
+          <span className="eyebrow">PANEL 5</span>
+          <h3 className="result-panel-title">자세 오류 요약</h3>
+          <p className="result-delta-copy">총 오류: {postureErrorCount}개</p>
           <div className="result-posture-card">
-            <span>자세 오류 Top 3</span>
             {postureErrorTop3.length ? (
               <ul>
-                {postureErrorTop3.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+                {postureErrorTop3.map((item, index) => <li key={`${item}-${index}`}>{formatPostureError(item)}</li>)}
               </ul>
             ) : (
               <p>감지된 자세 오류가 없습니다.</p>
@@ -222,9 +292,9 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
           </div>
         </section>
 
-        <section className="panel">
-          <span className="eyebrow">PROGRESS</span>
-          <h2>최근 기록 {formatWeightDelta(progress?.weightDeltaKg ?? null)}</h2>
+        <section className="panel result-panel">
+          <span className="eyebrow">PANEL 6</span>
+          <h3 className="result-panel-title">전 세션 대비 개선도</h3>
           <div className="result-improvement-strip">
             <div>
               <span>안정도 변화</span>
@@ -239,6 +309,12 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
               </strong>
             </div>
           </div>
+        </section>
+
+        <section className="panel result-panel">
+          <span className="eyebrow">PANEL 7</span>
+          <h3 className="result-panel-title">최근 30일 진행 지표</h3>
+          <p className="result-delta-copy">체중 변화 {formatWeightDelta(progress?.weightDeltaKg ?? null)}</p>
           <div className="stats-grid">
             <div><span>세션</span><strong>{summary?.sessionCount ?? 0}</strong></div>
             <div><span>운동</span><strong>{summary?.workoutCount ?? 0}</strong></div>
@@ -247,6 +323,57 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
             <div><span>시간</span><strong>{formatDuration(summary?.totalDurationSec)}</strong></div>
             <div><span>안정도</span><strong>{stabilityPercent ?? (summary?.avgStabilityScore == null ? "-" : Math.round(summary.avgStabilityScore * 100))}%</strong></div>
           </div>
+        </section>
+
+        <section className="panel result-panel">
+          <span className="eyebrow">PANEL 8</span>
+          <h3 className="result-panel-title">운동 종류별 누적 횟수</h3>
+          {byExercise.length ? (
+            <div className="result-bar-list">
+              {byExercise.map(([key, value]) => (
+                <div key={key} className="result-bar-row">
+                  <span>{formatExerciseName(key)}</span>
+                  <div className="result-bar-track">
+                    <div className="result-bar-fill" style={{ width: `${Math.round((value / maxByExercise) * 100)}%` }} />
+                  </div>
+                  <strong>{value}</strong>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="result-delta-copy">누적 운동 데이터가 없습니다.</p>
+          )}
+        </section>
+
+        <section className="panel result-panel">
+          <span className="eyebrow">PANEL 9</span>
+          <h3 className="result-panel-title">기준 촬영 대비 변화</h3>
+          {baselineDiffEntries.length ? (
+            <div className="result-baseline-list">
+              {baselineDiffEntries.map(([key, value]) => (
+                <div key={key}>
+                  <span>{key}</span>
+                  <strong>{value}</strong>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="result-delta-copy">baseline_diff 데이터가 없습니다.</p>
+          )}
+        </section>
+
+        <section className="panel result-panel">
+          <span className="eyebrow">PANEL 10</span>
+          <h3 className="result-panel-title">코칭 한 줄 행동 가이드</h3>
+          {positiveMessage && <p><strong>{positiveMessage}</strong></p>}
+          <p className="result-delta-copy">{message}</p>
+          {improvementLines.length ? (
+            <ul className="result-action-list">
+              {improvementLines.slice(0, 3).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
+            </ul>
+          ) : (
+            <p className="result-delta-copy">추가 행동 가이드가 없습니다.</p>
+          )}
         </section>
 
       </div>
