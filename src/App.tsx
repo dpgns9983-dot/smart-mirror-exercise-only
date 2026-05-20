@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
 
 import { hasRequiredProfileInput, profileNeedsBaseline } from "./services/api";
 import { useAppState } from "./state/AppContext";
@@ -74,6 +74,24 @@ function GuardedHistory() {
 
 export default function App() {
   const navigate = useNavigate();
+  const location = useLocation();
+
+  const tempButtonNext = () => {
+    // 현재 경로에서 다음 경로로 이동하는 데모 로직
+    const routeMap: Record<string, string> = {
+      "/": "/profile-select",
+      "/profile-select": "/baseline-check",
+      "/baseline-check": "/baseline-setup",
+      "/baseline-setup": "/mode",
+      "/mode": "/session",
+      "/session": "/result",
+      "/result": "/history",
+      "/history": "/mode",
+    };
+
+    const nextPath = routeMap[location.pathname] || "/profile-select";
+    navigate(nextPath);
+  };
 
   return (
     <>
@@ -81,7 +99,7 @@ export default function App() {
       <button
         type="button"
         className="temp-quick-button"
-        onClick={() => window.alert("임시 버튼 동작")}
+        onClick={tempButtonNext}
       >
         임시 버튼
       </button>

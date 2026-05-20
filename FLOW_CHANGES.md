@@ -1,5 +1,15 @@
 # Flow Changes
 
+## 임시 버튼 데모 자동 진행 기능 추가 (Demo only)
+
+이번 변경은 임시 버튼을 "API 연결 없이 화면 흐름을 테스트"하는 용도로 확장한 작업입니다.
+
+- 임시 버튼 클릭 시 현재 경로를 자동으로 감지해 다음 페이지로 이동합니다.
+- 경로 매핑: profile-select → baseline-check → baseline-setup → mode → session → result → history → mode
+- `useLocation` hook을 활용해 경로별 다음 단계를 자동 결정합니다.
+- API 호출 없이 프로토타입 검증용 데모 시나리오를 빠르게 진행할 수 있습니다.
+- 실제 기능 로직(프로필 생성, PC3 연결, 세션 시작 등)은 변경하지 않았습니다.
+
 ## 임시 버튼 전역 노출 보정 (UI only)
 
 이번 변경은 임시 버튼이 일부 화면에서 보이지 않던 문제를 해결한 작업입니다.
