@@ -97,6 +97,10 @@ function humanizeFallback(value: string): string {
   return value.replace(/_/g, " ");
 }
 
+function normalizeLookupKey(value: string): string {
+  return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
 export function formatExerciseName(value?: string | null): string {
   if (!value) {
     return "";
@@ -124,11 +128,13 @@ export function formatAdjustmentDirection(value?: string | null): string {
 }
 
 export function formatPostureError(value: string): string {
-  return POSTURE_ERROR_LABELS[value] ?? humanizeFallback(value);
+  const normalized = normalizeLookupKey(value);
+  return POSTURE_ERROR_LABELS[value] ?? POSTURE_ERROR_LABELS[normalized] ?? humanizeFallback(value);
 }
 
 export function formatTargetStatus(value: string): string {
-  return TARGET_STATUS_LABELS[value] ?? humanizeFallback(value);
+  const normalized = normalizeLookupKey(value);
+  return TARGET_STATUS_LABELS[value] ?? TARGET_STATUS_LABELS[normalized] ?? humanizeFallback(value);
 }
 
 export function formatCoachPurpose(value?: string | null): string {

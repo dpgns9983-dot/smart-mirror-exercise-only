@@ -14,6 +14,13 @@ type Phase = "idle" | "starting" | "running" | "stopping" | "pending_result" | "
 const REST_SECONDS = 45;
 const BLOCKING_TARGETS = new Set(["target_recovering", "target_lost", "multi_person_detected"]);
 
+function normalizeTargetStatus(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) {
+    return "tracking";
+  }
+  return value.trim().toLowerCase().replace(/[\s-]+/g, "_");
+}
+
 function readExerciseUpdate(raw: unknown): ExerciseUpdate | null {
   if (!raw || typeof raw !== "object") {
     return null;
@@ -65,7 +72,6 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
   const progress = targetCount ? Math.min(100, Math.round((count / targetCount) * 100)) : 0;
   const isLastExercise = !run || run.currentIndex >= run.day.exercises.length - 1;
   const displayLines = coachingResult?.coaching?.pc2_payload?.display_lines ?? [];
-  const evidence = coachingResult?.coaching?.pc2_payload?.evidence ?? [];
 
   const exerciseTitle = currentExercise ? EXERCISE_LABELS[currentExercise.exercise] : "운동";
   const exerciseDetail = currentExercise
@@ -109,7 +115,7 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
     setCountLeft(typeof update.count_left === "number" ? update.count_left : null);
     setCountRight(typeof update.count_right === "number" ? update.count_right : null);
     setStability(typeof update.stability_score === "number" ? update.stability_score : null);
-    setTargetStatus(update.target_status ?? "tracking");
+    setTargetStatus(normalizeTargetStatus(update.target_status));
     setFeedback(update.feedback || "실시간으로 자세를 분석하고 있습니다.");
     setPostureErrors(Array.isArray(update.posture_errors) ? update.posture_errors : []);
   };
@@ -308,7 +314,6 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
                 {displayLines.map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
               </ul>
             ) : null}
-            {evidence.length ? <em>근거: {evidence.slice(0, 2).map((item) => item.title || item.source_title || item.summary || item.text).filter(Boolean).join(" · ")}</em> : null}
             <button type="button" className="button button--primary" onClick={continueAfterCoaching}>
               다음 구간으로
             </button>
