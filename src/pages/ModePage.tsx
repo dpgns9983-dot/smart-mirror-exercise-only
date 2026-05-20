@@ -5,15 +5,14 @@ import AppShell from "../components/AppShell";
 import {
   generateRoutine,
   getBaselineStatus,
-  getProgress,
   getRoutineCalendar,
   getRoutineDay,
   profileNeedsBaseline,
   routineFromDay,
-  saveBodyMetric,
 } from "../services/api";
+import { dayNotePreview, readDayNotes } from "../services/dayNotes";
 import { useAppState } from "../state/AppContext";
-import type { BodyMetricRecord, RoutineCalendar, RoutineDay } from "../types/domain";
+import type { RoutineCalendar, RoutineCalendarDay, RoutineDay, WeeklyRoutineExercise } from "../types/domain";
 import {
   EXERCISE_LABELS,
   formatExerciseTarget,
@@ -24,19 +23,17 @@ import {
   todayIso,
 } from "../utils/format";
 
-function weightByDate(metrics: BodyMetricRecord[]): Record<string, string> {
-  return metrics.reduce<Record<string, string>>((result, metric) => {
-    if (metric.measuredDate && metric.weightKg > 0) {
-      result[metric.measuredDate] = `${metric.weightKg}kg`;
-    }
-    return result;
-  }, {});
-}
-
 type RoutineReasonCard = {
   label: string;
   title: string;
   body: string;
+};
+
+const TEXT_LIMITS = {
+  calendar: 10,
+  title: 22,
+  reasonTitle: 18,
+  reasonBody: 42,
 };
 
 const ROUTINE_TEXT_REPLACEMENTS: Array<[RegExp, string]> = [
@@ -86,13 +83,67 @@ function chooseRoutineText(...values: unknown[]): string {
   return "";
 }
 
+function clampText(text: string, maxLength: number): string {
+  const trimmed = text.trim();
+  if (trimmed.length <= maxLength) {
+    return trimmed;
+  }
+  return `${trimmed.slice(0, Math.max(0, maxLength - 1)).trim()}…`;
+}
+
+function compactExerciseNames(exercises: WeeklyRoutineExercise[], maxLength = TEXT_LIMITS.calendar): string {
+  const labels = Array.from(new Set(exercises.map((exercise) => EXERCISE_LABELS[exercise.exercise]).filter(Boolean)));
+  if (labels.length === 0) {
+    return "";
+  }
+  if (labels.length === 1) {
+    return clampText(labels[0], maxLength);
+  }
+  if (labels.length === 2) {
+    return clampText(`${labels[0]}와 ${labels[1]}`, maxLength);
+  }
+  return clampText(`${labels[0]} 외 ${labels.length - 1}개`, maxLength);
+}
+
+function compactTextFromFocus(value: unknown, maxLength = TEXT_LIMITS.calendar): string {
+  const source = polishRoutineText(value);
+  if (!source) {
+    return "";
+  }
+  const labels = Object.values(EXERCISE_LABELS).filter((label) => source.includes(label));
+  if (labels.length) {
+    return clampText(labels.length === 1 ? labels[0] : `${labels[0]}와 ${labels[1]}`, maxLength);
+  }
+  const cleaned = source
+    .replace(/의\s*기본\s*자세\s*익히기/g, "")
+    .replace(/기본\s*자세\s*익히기/g, "")
+    .replace(/리듬과\s*자세\s*유지/g, "")
+    .replace(/자세\s*안정성/g, "")
+    .trim();
+  return cleaned ? clampText(cleaned, maxLength) : "";
+}
+
+function selectedRoutineTitle(day: RoutineDay | null): string {
+  if (!day) {
+    return "선택 날짜 루틴 없음";
+  }
+  const dayIndex = day.dayIndex > 0 ? day.dayIndex : 1;
+  const exerciseLabel = compactExerciseNames(day.exercises, 14) || compactTextFromFocus(day.focus, 14) || "오늘 루틴";
+  return clampText(`${dayIndex}일차 - ${exerciseLabel}`, TEXT_LIMITS.title);
+}
+
 function buildRoutineReasonCards(day: RoutineDay | null, estimatedMinutes?: number | null): RoutineReasonCard[] {
   if (!day) {
     return [
       {
-        label: "준비 중",
-        title: "루틴이 준비되면 추천 이유가 표시됩니다.",
-        body: "달력에 루틴이 배정되면 오늘 목적, 운동 포인트, 진행 강도를 함께 보여드릴게요.",
+        label: "대기 상태",
+        title: "오늘 루틴을 준비하고 있어요",
+        body: "아직 배정된 루틴이 없습니다. 추천 루틴 생성 버튼을 누르면 바로 오늘 루틴을 받아올 수 있어요.",
+      },
+      {
+        label: "다음 단계",
+        title: "루틴 생성 후 운동 시작",
+        body: "루틴이 생성되면 운동 목록과 추천 이유가 자동으로 채워지고, 운동 시작 버튼이 활성화됩니다.",
       },
     ];
   }
@@ -105,7 +156,7 @@ function buildRoutineReasonCards(day: RoutineDay | null, estimatedMinutes?: numb
   const estimatedText = estimatedMinutes && estimatedMinutes > 0 ? `약 ${estimatedMinutes}분` : "짧게 시작";
   const intensityDetail = [firstTarget, firstRest].filter(Boolean).join(" · ");
 
-  return [
+  const cards = [
     {
       label: "오늘의 목적",
       title: chooseRoutineText(day.focus, day.weeklyFocus, day.message) || "오늘 루틴의 목표를 확인해요",
@@ -125,6 +176,12 @@ function buildRoutineReasonCards(day: RoutineDay | null, estimatedMinutes?: numb
           : "루틴이 준비되면 운동 개수와 예상 시간이 표시됩니다.",
     },
   ];
+
+  return cards.map((card) => ({
+    ...card,
+    title: clampText(card.title, TEXT_LIMITS.reasonTitle),
+    body: clampText(card.body, TEXT_LIMITS.reasonBody),
+  }));
 }
 
 export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
@@ -135,13 +192,11 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
   const [selectedDate, setSelectedDate] = useState(today);
   const [todayDay, setTodayDay] = useState<RoutineDay | null>(null);
   const [selectedDayDetail, setSelectedDayDetail] = useState<RoutineDay | null>(null);
-  const [calendarWeights, setCalendarWeights] = useState<Record<string, string>>({});
+  const [calendarExerciseLabels, setCalendarExerciseLabels] = useState<Record<string, string>>({});
+  const [calendarNotes, setCalendarNotes] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [selectedDayLoading, setSelectedDayLoading] = useState(false);
   const [routineLoading, setRoutineLoading] = useState(false);
-  const [savingWeight, setSavingWeight] = useState(false);
-  const [weightInput, setWeightInput] = useState(profile?.weightKg ? String(profile.weightKg) : "");
-  const [weightMemo, setWeightMemo] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   const calendarDays = calendar?.days ?? [];
@@ -149,10 +204,50 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
   const isTodaySelected = selectedDate === today;
   const selectedRoutine = selectedDayDetail ? routineFromDay(selectedDayDetail) : null;
   const canStart = Boolean(isTodaySelected && todayRoutine?.routineId && todayDay?.routineDayId && todayDay.exercises.length > 0);
-  const canSaveWeight = isTodaySelected && !savingWeight;
+  const hasSelectedRoutine = Boolean(selectedDayDetail?.exercises.length);
+  const visibleExercises = selectedDayDetail?.exercises.slice(0, 3) ?? [];
+  const hiddenExerciseCount = Math.max(0, (selectedDayDetail?.exercises.length ?? 0) - visibleExercises.length);
+  const selectedSummary = selectedDayLoading
+    ? "선택한 날짜의 루틴을 불러오는 중입니다."
+    : clampText(
+        selectedDayDetail
+          ? chooseRoutineText(selectedDayDetail.summary, selectedDayDetail.weeklyFocus) || "오늘 운동을 간단히 확인하세요."
+          : isTodaySelected
+            ? "오늘 배정된 루틴이 아직 없습니다. 추천 루틴 생성으로 바로 준비할 수 있어요."
+            : "선택한 날짜에 등록된 루틴이 없습니다.",
+        TEXT_LIMITS.reasonBody,
+      );
   const routineReasonCards = useMemo(
     () => buildRoutineReasonCards(selectedDayDetail, selectedRoutine?.estimatedMinutes),
     [selectedDayDetail, selectedRoutine?.estimatedMinutes],
+  );
+
+  const hydrateCalendarLabels = useCallback(
+    (days: RoutineCalendarDay[]) => {
+      if (!profile) {
+        return;
+      }
+      const routineDays = days.filter((day) => day.routineId);
+      setCalendarExerciseLabels({});
+      if (!routineDays.length) {
+        return;
+      }
+      void Promise.allSettled(
+        routineDays.map(async (day) => {
+          const detail = await getRoutineDay(profile.id, day.date);
+          return [day.date, compactExerciseNames(detail.exercises)] as const;
+        }),
+      ).then((results) => {
+        const labels: Record<string, string> = {};
+        results.forEach((result) => {
+          if (result.status === "fulfilled" && result.value[1]) {
+            labels[result.value[0]] = result.value[1];
+          }
+        });
+        setCalendarExerciseLabels(labels);
+      });
+    },
+    [profile],
   );
 
   const loadHome = useCallback(async () => {
@@ -167,18 +262,10 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
         throw new Error("기준 촬영이 완료되어야 오늘 운동을 시작할 수 있습니다.");
       }
 
-      const [calendarData, progressData] = await Promise.all([
-        getRoutineCalendar(profile.id, monthStartIso(today), monthEndIso(today)),
-        getProgress(profile.id, 30),
-      ]);
+      const calendarData = await getRoutineCalendar(profile.id, monthStartIso(today), monthEndIso(today));
       setCalendar(calendarData);
-      setCalendarWeights(weightByDate(progressData.bodyMetrics));
-      const todayMetric = [...progressData.bodyMetrics].reverse().find((metric) => metric.measuredDate === today);
-      if (todayMetric?.weightKg) {
-        setWeightInput(String(todayMetric.weightKg));
-      } else if (profile.weightKg) {
-        setWeightInput(String(profile.weightKg));
-      }
+      setCalendarNotes(readDayNotes(profile.id));
+      hydrateCalendarLabels(calendarData.days);
       setSelectedDate((current) => current || today);
 
       const todayInCalendar = calendarData.days.find((day) => day.date === today);
@@ -191,6 +278,7 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
 
       const day = await getRoutineDay(profile.id, today);
       setTodayDay(day);
+      setCalendarExerciseLabels((current) => ({ ...current, [today]: compactExerciseNames(day.exercises) }));
       if (selectedDate === today) {
         setSelectedDayDetail(day);
       }
@@ -201,7 +289,7 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
     } finally {
       setLoading(false);
     }
-  }, [app, profile, selectedDate, today]);
+  }, [app, hydrateCalendarLabels, profile, selectedDate, today]);
 
   useEffect(() => {
     if (!profile) {
@@ -236,6 +324,7 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
       .then((day) => {
         if (!cancelled) {
           setSelectedDayDetail(day);
+          setCalendarExerciseLabels((current) => ({ ...current, [selectedDate]: compactExerciseNames(day.exercises) }));
         }
       })
       .catch((caught) => {
@@ -281,30 +370,6 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
     navigate("/session");
   };
 
-  const savePreWorkoutWeight = async () => {
-    const weight = Number(weightInput);
-    if (!isTodaySelected) {
-      setError("몸무게 기록은 오늘 날짜에서만 저장할 수 있습니다.");
-      return;
-    }
-    if (!Number.isFinite(weight) || weight <= 0) {
-      setError("몸무게를 숫자로 입력해주세요.");
-      return;
-    }
-    setSavingWeight(true);
-    setError(null);
-    try {
-      await saveBodyMetric(profile.id, weight, weightMemo.trim() || "pc1_pre_workout");
-      const progressData = await getProgress(profile.id, 30);
-      setCalendarWeights(weightByDate(progressData.bodyMetrics));
-      setWeightMemo("");
-    } catch (caught) {
-      setError(friendlyError(caught, "운동 전 몸무게 기록을 저장하지 못했습니다. 다시 시도해주세요."));
-    } finally {
-      setSavingWeight(false);
-    }
-  };
-
   return (
     <AppShell title="ROUTINE" step="STEP 4">
       {error ? (
@@ -338,13 +403,13 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
                   day.date === today ? "is-today" : "",
                   day.completed ? "is-done" : "",
                   day.skipped ? "is-skipped" : "",
-                  day.routineId || calendarWeights[day.date] ? "" : "is-empty",
+                  day.routineId ? "" : "is-empty",
                 ].filter(Boolean).join(" ")}
                 onClick={() => setSelectedDate(day.date)}
               >
                 <strong>{shortDate(day.date)}</strong>
-                <span>{day.focus ?? ""}</span>
-                <em>{calendarWeights[day.date] ?? ""}</em>
+                <span>{calendarExerciseLabels[day.date] ?? compactTextFromFocus(day.focus)}</span>
+                {dayNotePreview(calendarNotes[day.date] ?? "") ? <em>{dayNotePreview(calendarNotes[day.date] ?? "")}</em> : null}
               </button>
             ))}
           </div>
@@ -356,16 +421,12 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
           </div>
         </section>
 
-        <section className="panel today-panel today-panel--mode">
+        <section className={`panel today-panel today-panel--mode ${hasSelectedRoutine ? "" : "today-panel--empty"}`.trim()}>
           <span className="eyebrow">{isTodaySelected ? "TODAY" : shortDate(selectedDate)}</span>
-          <h2>{selectedDayDetail?.message || selectedDayDetail?.focus || "선택 날짜 루틴 없음"}</h2>
-          <p>
-            {selectedDayLoading
-              ? "선택한 날짜의 루틴을 불러오는 중입니다."
-              : selectedDayDetail?.summary || selectedDayDetail?.weeklyFocus || "선택한 날짜에 등록된 루틴이 없습니다."}
-          </p>
+          <h2>{selectedRoutineTitle(selectedDayDetail)}</h2>
+          <p>{selectedSummary}</p>
           <div className="routine-list routine-list--today">
-            {selectedDayDetail?.exercises.map((exercise, index) => (
+            {visibleExercises.map((exercise, index) => (
               <article key={`${exercise.exercise}-${index}`}>
                 <span>{index + 1}</span>
                 <strong>{EXERCISE_LABELS[exercise.exercise]}</strong>
@@ -375,6 +436,7 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
                 <small>{exercise.focus || exercise.reason || "자세를 확인하며 진행"}</small>
               </article>
             ))}
+            {hiddenExerciseCount > 0 ? <p className="routine-more-copy">외 {hiddenExerciseCount}개 운동</p> : null}
             {!selectedDayDetail?.exercises.length ? <p className="empty-copy">달력에 루틴이 배정되면 여기에 표시됩니다.</p> : null}
           </div>
           <div className="routine-reason-card">
@@ -393,27 +455,13 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
               ))}
             </div>
           </div>
-          <div className={`today-weight-card${!isTodaySelected ? " is-disabled" : ""}`}>
-            <div>
-              <span className="eyebrow">BODY METRIC</span>
-              <strong>운동 전 몸무게 기록</strong>
-              <p>{isTodaySelected ? "오늘 운동을 시작하기 전에 몸무게를 남겨두면 달력과 기록 화면에 함께 표시됩니다." : "몸무게 기록은 오늘 날짜에서만 저장할 수 있습니다."}</p>
-            </div>
-            <div className="weight-form">
-              <input value={weightInput} onChange={(event) => setWeightInput(event.target.value)} inputMode="decimal" placeholder="kg" disabled={!isTodaySelected} />
-              <input value={weightMemo} onChange={(event) => setWeightMemo(event.target.value)} placeholder="메모" disabled={!isTodaySelected} />
-              <button type="button" className="button button--primary" onClick={() => void savePreWorkoutWeight()} disabled={!canSaveWeight}>
-                {savingWeight ? "저장 중" : "저장"}
-              </button>
-            </div>
-          </div>
           <div className="footer-actions">
             <button type="button" className="button button--primary" onClick={startWorkout} disabled={!canStart}>
-              {isTodaySelected ? "운동 시작" : "오늘만 시작 가능"}
+              {isTodaySelected ? (canStart ? "운동 시작" : "루틴 준비 후 시작") : "오늘만 시작 가능"}
             </button>
             {isTodaySelected && !canStart ? (
               <button type="button" className="button button--ghost" onClick={() => void generate()} disabled={routineLoading}>
-                {routineLoading ? "생성 중" : "추천 루틴 생성"}
+                {routineLoading ? "루틴 준비 중" : "추천 루틴 생성"}
               </button>
             ) : null}
           </div>

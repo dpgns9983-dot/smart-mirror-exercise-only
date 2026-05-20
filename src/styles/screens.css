@@ -465,6 +465,12 @@
   letter-spacing: 0;
 }
 
+.capture-countdown.is-scanning strong {
+  color: var(--cyan);
+  font-size: clamp(2.1rem, 4vw, 3.6rem);
+  letter-spacing: 0.04em;
+}
+
 .capture-toast,
 .session-alert {
   position: absolute;
@@ -585,6 +591,7 @@
 }
 
 .today-panel--mode {
+  grid-row: 1 / span 2;
   height: 100%;
   min-height: 100%;
   max-height: 100%;
@@ -593,6 +600,10 @@
   display: grid;
   grid-template-rows: auto auto auto minmax(0, auto) minmax(0, 1fr) auto;
   gap: 0.6rem;
+}
+
+.today-panel--mode.today-panel--empty {
+  grid-template-rows: auto auto auto auto minmax(0, auto) auto;
 }
 
 .today-panel .footer-actions {
@@ -854,6 +865,15 @@
   margin: 0.55rem 0;
 }
 
+.today-panel--empty .routine-list--today {
+  max-height: none;
+  margin: 0.35rem 0;
+}
+
+.today-panel--empty .empty-copy {
+  margin: 0.2rem 0;
+}
+
 .routine-list--today article {
   min-height: 0;
   padding-top: 0.5rem;
@@ -935,6 +955,11 @@
   overflow: hidden;
 }
 
+.today-panel--empty .routine-reason-card {
+  background: linear-gradient(135deg, rgba(39, 226, 255, 0.11), rgba(255, 255, 255, 0.025));
+  border-color: rgba(39, 226, 255, 0.34);
+}
+
 .routine-reason-card__head {
   display: grid;
   gap: 0.25rem;
@@ -961,6 +986,10 @@
   min-height: 0;
 }
 
+.today-panel--empty .routine-reason-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .routine-reason-grid article {
   min-width: 0;
   border: 1px solid rgba(255, 255, 255, 0.11);
@@ -969,6 +998,10 @@
   padding: 0.6rem;
   display: grid;
   gap: 0.26rem;
+}
+
+.today-panel--empty .routine-reason-grid article {
+  min-height: 120px;
 }
 
 .routine-reason-grid article span {
@@ -1465,6 +1498,55 @@
   overflow: visible;
   display: flex;
   flex-direction: column;
+}
+
+.history-summary-panel--split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.62fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+
+.history-summary-main,
+.history-memo-pad {
+  min-width: 0;
+}
+
+.history-memo-pad {
+  border: 1px solid rgba(39, 226, 255, 0.22);
+  border-radius: 8px;
+  background: rgba(39, 226, 255, 0.045);
+  padding: 0.85rem;
+  display: grid;
+  grid-template-rows: auto minmax(110px, 1fr) auto;
+  gap: 0.65rem;
+}
+
+.history-memo-pad > div {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.history-memo-pad strong {
+  color: var(--text);
+  font-size: 1.1rem;
+}
+
+.history-memo-pad textarea {
+  width: 100%;
+  min-height: 110px;
+  resize: none;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.22);
+  color: var(--text);
+  padding: 0.75rem;
+  line-height: 1.45;
+}
+
+.history-memo-pad em {
+  color: var(--muted);
+  font-size: 0.84rem;
 }
 
 .history-session-panel {
@@ -2068,6 +2150,10 @@
     display: grid;
   }
 
+  .history-summary-panel--split {
+    grid-template-columns: 1fr;
+  }
+
   .history-day-actions {
     justify-content: flex-start;
   }
@@ -2090,6 +2176,10 @@
   }
 
   .history-coaching-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .today-panel--empty .routine-reason-grid {
     grid-template-columns: 1fr;
   }
 
