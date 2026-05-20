@@ -1,4 +1,4 @@
-import { Navigate, Route, Routes, useLocation, useNavigate } from "react-router-dom";
+import { Navigate, Route, Routes, useNavigate } from "react-router-dom";
 
 import { hasRequiredProfileInput, profileNeedsBaseline } from "./services/api";
 import { useAppState } from "./state/AppContext";
@@ -74,38 +74,9 @@ function GuardedHistory() {
 
 export default function App() {
   const navigate = useNavigate();
-  const location = useLocation();
-
-  const tempButtonNext = () => {
-    // 현재 경로에서 다음 경로로 이동하는 데모 로직
-    const routeMap: Record<string, string> = {
-      "/": "/profile-select",
-      "/profile-select": "/baseline-check",
-      "/baseline-check": "/baseline-setup",
-      "/baseline-setup": "/mode",
-      "/mode": "/session",
-      "/session": "/result",
-      "/result": "/history",
-      "/history": "/mode",
-    };
-
-    const nextPath = routeMap[location.pathname] || "/profile-select";
-    navigate(nextPath);
-  };
 
   return (
-    <>
-      {/* TEMP_UI_BUTTON_START */}
-      <button
-        type="button"
-        className="temp-quick-button"
-        onClick={tempButtonNext}
-      >
-        임시 버튼
-      </button>
-      {/* TEMP_UI_BUTTON_END */}
-
-      <Routes>
+    <Routes>
         <Route path="/" element={<Navigate to="/profile-select" replace />} />
         <Route path="/profile-select" element={<ProfileSelectPage navigate={navigate} />} />
         <Route path="/baseline-check" element={<GuardedProfileInput />} />
@@ -117,6 +88,5 @@ export default function App() {
         <Route path="/history" element={<GuardedHistory />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
-    </>
   );
 }
