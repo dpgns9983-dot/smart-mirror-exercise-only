@@ -1,5 +1,17 @@
 # Flow Changes
 
+## 결과화면 상세 데이터 노출 + 수동 API 테스트 경로 추가 (Result/Data)
+
+이번 변경은 PC3 응답을 결과화면에서 더 많이 보여주고, 실제 운동 없이도 엔드포인트 호출로 검증할 수 있게 한 작업입니다.
+
+- `pc1/test-api.http`를 추가해 시작/종료/스킵/결과재조회/진행요약/코칭로그를 순서대로 직접 호출할 수 있게 했습니다.
+- Result 화면의 SESSION 패널에 좌우 카운트와 측정 신뢰도 필드를 추가했습니다.
+- Result 화면에 DETAILS 패널을 추가해 아래 원본 값을 확인할 수 있게 했습니다.
+  - `baseline_diff`의 primitive 키/값
+  - `environment`의 primitive 키/값
+  - `coaching.pc2_payload.evidence` 주요 라벨
+- API 계약은 변경하지 않았고, PC1 표시 레이어와 수동 검증 경로만 확장했습니다.
+
 ## 결과 화면 코칭 요약 톤 및 안전 경보 도입 (UX/Display)
 
 이번 변경은 PC3에서 받아온 코칭 데이터(warnings, display_lines, stability_score, measurement_quality)를 PC1이 재해석해 더 자연스러운 톤으로 표시하는 합성 레이어입니다.

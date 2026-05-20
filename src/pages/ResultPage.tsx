@@ -5,14 +5,12 @@ import AppShell from "../components/AppShell";
 import { getCoachLogs, getProgress, getSessionResult } from "../services/api";
 import { useAppState } from "../state/AppContext";
 import type { CoachLog, ProgressResponse, SessionFinalResponse } from "../types/domain";
-import { formatDuration, formatEvidenceMeta, formatExerciseName, formatWeightDelta, todayIso } from "../utils/format";
+import { formatDuration, formatExerciseName, formatWeightDelta, todayIso } from "../utils/format";
 import {
   composeCoachLogBody,
   composeCoachLogTitle,
-  composeEvidenceLabel,
   composeImprovementLines,
   composePositiveLine,
-  composeSafetyAlert,
   resolveSafetyLevel,
 } from "../utils/coachingCopy";
 
@@ -22,6 +20,27 @@ function featureValue(features: Record<string, unknown> | undefined, key: string
     return (exercise as Record<string, unknown>)[key];
   }
   return features?.[key];
+}
+
+function toNumber(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+  return null;
+}
+
+function objectPairs(payload: Record<string, unknown> | undefined): Array<[string, string]> {
+  if (!payload) {
+    return [];
+  }
+  return Object.entries(payload)
+    .filter(([, value]) => ["string", "number", "boolean"].includes(typeof value))
+    .slice(0, 6)
+    .map(([key, value]) => [key, String(value)]);
 }
 
 export default function ResultPage({ navigate }: { navigate: NavigateFunction }) {
@@ -36,12 +55,18 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   const displayResult = storedResult ?? result;
   const exerciseType = String(featureValue(displayResult?.features, "type") ?? app.selectedRoutine?.startExerciseType ?? "squat");
   const count = Number(featureValue(displayResult?.features, "count") ?? 0);
+  const leftCount = toNumber(featureValue(displayResult?.features, "count_left"));
+  const rightCount = toNumber(featureValue(displayResult?.features, "count_right"));
   const stability = featureValue(displayResult?.features, "stability_score");
   const stabilityPercent = typeof stability === "number" ? Math.round(stability * 100) : null;
   const measurementQuality = String(featureValue(displayResult?.features, "measurement_quality") ?? "기록 없음");
+  const measurementConfidence = toNumber(featureValue(displayResult?.features, "measurement_confidence"));
+  const measurementConfidencePercent = measurementConfidence == null ? null : Math.round(measurementConfidence * 100);
   const warnings = displayResult?.coaching?.warnings ?? [];
   const displayLines = displayResult?.coaching?.pc2_payload?.display_lines ?? [];
   const evidence = displayResult?.coaching?.pc2_payload?.evidence ?? [];
+  const baselinePairs = objectPairs(displayResult?.baseline_diff);
+  const environmentPairs = objectPairs(displayResult?.environment);
   const message = displayResult?.coaching?.mirror_message ?? displayResult?.coaching?.summary ?? "운동 결과를 정리했습니다.";
 
   // 안전 레벨 결정
@@ -55,7 +80,6 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
     formatExerciseName(exerciseType),
   );
   const improvementLines = composeImprovementLines(displayLines, warnings, safetyLevel);
-  const safetyAlert = composeSafetyAlert(safetyLevel, warnings);
 
   useEffect(() => {
     if (!profile) {
@@ -140,6 +164,20 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
           <h2>{exerciseLabel}</h2>
           <strong>{displayResult?.status === "skipped" ? "SKIP" : count}</strong>
           <p>{message}</p>
+          <div className="result-kpi-mini">
+            <div>
+              <span>왼쪽</span>
+              <strong>{leftCount ?? "-"}</strong>
+            </div>
+            <div>
+              <span>오른쪽</span>
+              <strong>{rightCount ?? "-"}</strong>
+            </div>
+            <div>
+              <span>신뢰도</span>
+              <strong>{measurementConfidencePercent == null ? "-" : `${measurementConfidencePercent}%`}</strong>
+            </div>
+          </div>
           <em>세션 결과 재조회: {resultStatus === "ok" ? "완료" : resultStatus === "failed" ? "실패" : "확인 중"}</em>
           <em>측정 품질: {measurementQuality}</em>
         </section>
@@ -159,28 +197,6 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
           {displayResult?.coaching?.summary && (
             <p style={{ marginTop: "1em", fontSize: "0.8em", opacity: 0.6, fontStyle: "italic" }}>PC3 원문: {displayResult.coaching.summary}</p>
           )}
-        </section>
-
-        {safetyAlert && (
-          <section className={`panel panel--${safetyLevel === "danger" ? "danger" : "warn"}`}>
-            <span className="eyebrow">SAFETY</span>
-            <h2>{safetyAlert.headline}</h2>
-            <ul>
-              {safetyAlert.checklist.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
-            </ul>
-          </section>
-        )}
-
-        <section className="panel">
-          <span className="eyebrow">EVIDENCE</span>
-          <h2>근거</h2>
-          {evidence.length === 0 ? <p>표시할 근거가 없습니다.</p> : null}
-          {evidence.slice(0, 5).map((item, index) => (
-            <article key={`${item.id ?? index}`}>
-              <strong>{composeEvidenceLabel(item)}</strong>
-              <span style={{ fontSize: "0.8em", opacity: 0.7 }}>{formatEvidenceMeta(item.exercise, item.category)}</span>
-            </article>
-          ))}
         </section>
 
         <section className="panel">
@@ -208,6 +224,58 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
               </article>
             );
           })}
+        </section>
+
+        <section className="panel">
+          <span className="eyebrow">DETAILS</span>
+          <h2>추가 수집 데이터</h2>
+          <div className="result-detail-list">
+            <div>
+              <strong>Baseline Diff</strong>
+              {baselinePairs.length ? (
+                <ul>
+                  {baselinePairs.map(([key, value]) => (
+                    <li key={`baseline-${key}`}>
+                      <span>{key}</span>
+                      <strong>{value}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>표시할 기준 비교 값이 없습니다.</p>
+              )}
+            </div>
+
+            <div>
+              <strong>Environment</strong>
+              {environmentPairs.length ? (
+                <ul>
+                  {environmentPairs.map(([key, value]) => (
+                    <li key={`env-${key}`}>
+                      <span>{key}</span>
+                      <strong>{value}</strong>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p>표시할 환경 값이 없습니다.</p>
+              )}
+            </div>
+
+            <div>
+              <strong>Evidence</strong>
+              {evidence.length ? (
+                <div className="result-chip-list">
+                  {evidence.slice(0, 8).map((item, index) => {
+                    const label = item.title ?? item.source_title ?? item.exercise_label ?? item.category_label ?? item.source ?? `evidence_${index + 1}`;
+                    return <span key={`${label}-${index}`}>{label}</span>;
+                  })}
+                </div>
+              ) : (
+                <p>코칭 근거 데이터가 없습니다.</p>
+              )}
+            </div>
+          </div>
         </section>
       </div>
     </AppShell>
