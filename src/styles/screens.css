@@ -531,14 +531,15 @@
 }
 
 .mode-home-grid {
+  flex: 1 1 auto;
   min-height: 0;
-  height: min(680px, calc(100vh - 13rem));
-  overflow: visible;
+  height: 100%;
+  overflow: hidden;
   display: grid;
   grid-template-columns: minmax(520px, 1.35fr) minmax(360px, 0.65fr);
   gap: 1rem;
   align-items: stretch;
-  padding-bottom: 6rem;
+  padding-bottom: 0;
 }
 
 .mode-home-grid > .panel {
@@ -569,7 +570,8 @@
 
 .calendar-panel--mode {
   height: 100%;
-  min-height: 0;
+  min-height: min(680px, calc(100vh - 13rem));
+  max-height: 100%;
   align-self: stretch;
 }
 
@@ -584,7 +586,8 @@
 
 .today-panel--mode {
   height: 100%;
-  min-height: 0;
+  min-height: min(680px, calc(100vh - 13rem));
+  max-height: 100%;
   align-self: stretch;
   overflow: hidden;
   display: grid;
@@ -666,7 +669,7 @@
 
 .calendar-strip--month {
   grid-template-columns: repeat(7, minmax(0, 1fr));
-  grid-auto-rows: minmax(0, 1fr);
+  grid-auto-rows: minmax(92px, 1fr);
   overflow: hidden;
   align-content: stretch;
 }
@@ -1758,6 +1761,113 @@
   font-size: 1rem;
 }
 
+.result-balance-chip {
+  margin-top: 0.55rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.55rem 0.65rem;
+  display: grid;
+  gap: 0.12rem;
+}
+
+.result-balance-chip span,
+.result-balance-chip em {
+  color: var(--muted);
+}
+
+.result-balance-chip strong {
+  font-size: 1.02rem;
+}
+
+.result-balance-chip.is-good {
+  border-color: rgba(108, 255, 178, 0.45);
+}
+
+.result-balance-chip.is-good strong {
+  color: var(--mint);
+}
+
+.result-balance-chip.is-mid {
+  border-color: rgba(255, 204, 102, 0.42);
+}
+
+.result-balance-chip.is-mid strong {
+  color: var(--warn);
+}
+
+.result-balance-chip.is-bad {
+  border-color: rgba(255, 120, 120, 0.45);
+}
+
+.result-balance-chip.is-bad strong {
+  color: #ff8b8b;
+}
+
+.result-posture-card {
+  margin-top: 0.85rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.025);
+  padding: 0.65rem;
+  display: grid;
+  gap: 0.45rem;
+}
+
+.result-posture-card span,
+.result-posture-card p,
+.result-posture-card li {
+  color: var(--muted);
+}
+
+.result-posture-card ul {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.3rem;
+}
+
+.result-posture-card p {
+  margin: 0;
+}
+
+.result-improvement-strip {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin: 0.35rem 0 0.65rem;
+}
+
+.result-improvement-strip div {
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 0.5rem 0.6rem;
+  display: grid;
+  gap: 0.12rem;
+}
+
+.result-improvement-strip span {
+  color: var(--muted);
+  font-size: 0.78rem;
+}
+
+.result-improvement-strip strong {
+  font-size: 1rem;
+}
+
+.result-improvement-strip .is-good {
+  color: var(--mint);
+}
+
+.result-improvement-strip .is-bad {
+  color: #ff8b8b;
+}
+
+.result-improvement-strip .is-neutral {
+  color: var(--muted);
+}
+
 @media (max-width: 860px) {
   .mirror-shell {
     padding: 1rem;
@@ -1877,6 +1987,10 @@
   }
 
   .history-coaching-cards {
+    grid-template-columns: 1fr;
+  }
+
+  .result-improvement-strip {
     grid-template-columns: 1fr;
   }
 

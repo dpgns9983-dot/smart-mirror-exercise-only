@@ -31,6 +31,13 @@ function toNumber(value: unknown): number | null {
   return null;
 }
 
+function toStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+  return value.map(String).filter((item) => item.trim().length > 0);
+}
+
 export default function ResultPage({ navigate }: { navigate: NavigateFunction }) {
   const app = useAppState();
   const result = app.lastResult;
@@ -48,6 +55,9 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   const measurementQuality = String(featureValue(displayResult?.features, "measurement_quality") ?? "기록 없음");
   const measurementConfidence = toNumber(featureValue(displayResult?.features, "measurement_confidence"));
   const measurementConfidencePercent = measurementConfidence == null ? null : Math.round(measurementConfidence * 100);
+  const postureErrors = toStringArray(featureValue(displayResult?.features, "posture_errors"));
+  const postureErrorCount = postureErrors.length;
+  const postureErrorTop3 = postureErrors.slice(0, 3);
   const warnings = displayResult?.coaching?.warnings ?? [];
   const displayLines = displayResult?.coaching?.pc2_payload?.display_lines ?? [];
   const message = displayResult?.coaching?.mirror_message ?? displayResult?.coaching?.summary ?? "운동 결과를 정리했습니다.";
@@ -96,6 +106,27 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
 
   const summary = progress?.workoutSummary;
   const exerciseLabel = useMemo(() => formatExerciseName(exerciseType), [exerciseType]);
+  const previousWorkout = useMemo(() => {
+    const workouts = progress?.recentWorkouts ?? [];
+    return workouts.find((item) => {
+      if (item.sessionId && result?.session_id && item.sessionId === result.session_id) {
+        return false;
+      }
+      if (item.status === "skipped") {
+        return false;
+      }
+      return typeof item.exerciseType === "string" && item.exerciseType === exerciseType;
+    }) ?? null;
+  }, [progress?.recentWorkouts, exerciseType, result?.session_id]);
+
+  const previousStability = previousWorkout?.stabilityScore ?? null;
+  const previousPostureErrorCount = previousWorkout?.postureErrors?.length ?? null;
+  const currentStability = typeof stability === "number" ? stability : null;
+  const stabilityDeltaPercent = currentStability != null && previousStability != null ? Math.round((currentStability - previousStability) * 100) : null;
+  const postureErrorDelta = previousPostureErrorCount == null ? null : postureErrorCount - previousPostureErrorCount;
+  const leftRightDiff = leftCount != null && rightCount != null ? Math.abs(leftCount - rightCount) : null;
+  const balanceLabel = leftRightDiff == null ? "판단 불가" : leftRightDiff <= 1 ? "균형 좋음" : leftRightDiff <= 3 ? "조금 불균형" : "불균형 주의";
+  const balanceToneClass = leftRightDiff == null ? "is-neutral" : leftRightDiff <= 1 ? "is-good" : leftRightDiff <= 3 ? "is-mid" : "is-bad";
 
   if (!result) {
     return (
@@ -160,6 +191,11 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
               <strong>{measurementConfidencePercent == null ? "-" : `${measurementConfidencePercent}%`}</strong>
             </div>
           </div>
+          <div className={`result-balance-chip ${balanceToneClass}`}>
+            <span>좌우 밸런스</span>
+            <strong>{leftRightDiff == null ? "-" : `차이 ${leftRightDiff}회`}</strong>
+            <em>{balanceLabel}</em>
+          </div>
         </section>
 
         <section className="panel">
@@ -174,11 +210,35 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
               </ul>
             </>
           ) : null}
+          <div className="result-posture-card">
+            <span>자세 오류 Top 3</span>
+            {postureErrorTop3.length ? (
+              <ul>
+                {postureErrorTop3.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+              </ul>
+            ) : (
+              <p>감지된 자세 오류가 없습니다.</p>
+            )}
+          </div>
         </section>
 
         <section className="panel">
           <span className="eyebrow">PROGRESS</span>
           <h2>최근 기록 {formatWeightDelta(progress?.weightDeltaKg ?? null)}</h2>
+          <div className="result-improvement-strip">
+            <div>
+              <span>안정도 변화</span>
+              <strong className={stabilityDeltaPercent == null ? "is-neutral" : stabilityDeltaPercent >= 0 ? "is-good" : "is-bad"}>
+                {stabilityDeltaPercent == null ? "비교 불가" : `${stabilityDeltaPercent > 0 ? "+" : ""}${stabilityDeltaPercent}%`}
+              </strong>
+            </div>
+            <div>
+              <span>자세 오류 변화</span>
+              <strong className={postureErrorDelta == null ? "is-neutral" : postureErrorDelta <= 0 ? "is-good" : "is-bad"}>
+                {postureErrorDelta == null ? "비교 불가" : `${postureErrorDelta > 0 ? "+" : ""}${postureErrorDelta}개`}
+              </strong>
+            </div>
+          </div>
           <div className="stats-grid">
             <div><span>세션</span><strong>{summary?.sessionCount ?? 0}</strong></div>
             <div><span>운동</span><strong>{summary?.workoutCount ?? 0}</strong></div>
