@@ -4,8 +4,8 @@ import type { NavigateFunction } from "react-router-dom";
 import AppShell from "../components/AppShell";
 import { getProgress, getSessionResult } from "../services/api";
 import { useAppState } from "../state/AppContext";
-import type { ProgressResponse, SessionFinalResponse } from "../types/domain";
-import { formatDuration, formatExerciseName, formatPostureError, formatWeightDelta, todayIso } from "../utils/format";
+import type { EvidenceItem, ProgressResponse, SessionFinalResponse } from "../types/domain";
+import { formatCategoryLabel, formatExerciseName, formatMeasurementQuality, formatPostureError, todayIso } from "../utils/format";
 import {
   composeImprovementLines,
   composePositiveLine,
@@ -38,12 +38,41 @@ function toStringArray(value: unknown): string[] {
   return value.map(String).filter((item) => item.trim().length > 0);
 }
 
+function scoreLabel(value: number | null): string {
+  return value === null ? "-" : `${Math.round(value * 100)}%`;
+}
+
+function balanceLabel(leftCount: number | null, rightCount: number | null): string {
+  if (leftCount === null || rightCount === null) {
+    return "판단 보류";
+  }
+  const diff = Math.abs(leftCount - rightCount);
+  if (diff <= 1) {
+    return "좌우 균형 좋음";
+  }
+  if (diff <= 3) {
+    return "조금 차이 있음";
+  }
+  return "좌우 차이 주의";
+}
+
+function detailText(item: EvidenceItem): string {
+  return item.summary ?? item.text ?? item.title ?? item.source_title ?? "PC3가 함께 전달한 참고 근거입니다.";
+}
+
+function detailLabel(item: EvidenceItem): string {
+  const category = formatCategoryLabel(item.category ?? item.category_label);
+  const exercise = formatExerciseName(item.exercise ?? item.exercise_label);
+  return [exercise, category].filter(Boolean).join(" · ") || "코칭 근거";
+}
+
 export default function ResultPage({ navigate }: { navigate: NavigateFunction }) {
   const app = useAppState();
   const result = app.lastResult;
   const profile = app.activeProfile;
   const [progress, setProgress] = useState<ProgressResponse | null>(null);
   const [storedResult, setStoredResult] = useState<SessionFinalResponse | null>(null);
+  const [detailsOpen, setDetailsOpen] = useState(false);
 
   const displayResult = storedResult ?? result;
   const exerciseType = String(featureValue(displayResult?.features, "type") ?? app.selectedRoutine?.startExerciseType ?? "squat");
@@ -51,25 +80,21 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   const leftCount = toNumber(featureValue(displayResult?.features, "count_left"));
   const rightCount = toNumber(featureValue(displayResult?.features, "count_right"));
   const stability = featureValue(displayResult?.features, "stability_score");
-  const stabilityPercent = typeof stability === "number" ? Math.round(stability * 100) : null;
-  const measurementQuality = String(featureValue(displayResult?.features, "measurement_quality") ?? "기록 없음");
+  const stabilityValue = typeof stability === "number" ? stability : null;
+  const measurementQuality = formatMeasurementQuality(String(featureValue(displayResult?.features, "measurement_quality") ?? ""));
   const postureErrors = toStringArray(featureValue(displayResult?.features, "posture_errors"));
-  const postureErrorCount = postureErrors.length;
-  const postureErrorTop3 = postureErrors.slice(0, 3);
   const warnings = displayResult?.coaching?.warnings ?? [];
   const displayLines = displayResult?.coaching?.pc2_payload?.display_lines ?? [];
+  const evidence = displayResult?.coaching?.pc2_payload?.evidence ?? [];
   const message = displayResult?.coaching?.mirror_message ?? displayResult?.coaching?.summary ?? "운동 결과를 정리했습니다.";
+  const exerciseLabel = useMemo(() => formatExerciseName(exerciseType), [exerciseType]);
 
-  // 안전 레벨 결정
   const safetyLevel = resolveSafetyLevel({
     warnings,
-    stability: typeof stability === "number" ? stability : null,
+    stability: stabilityValue,
     measurementQuality,
   });
-  const positiveMessage = composePositiveLine(
-    safetyLevel,
-    formatExerciseName(exerciseType),
-  );
+  const positiveMessage = composePositiveLine(safetyLevel, exerciseLabel, stabilityValue === null ? null : Math.round(stabilityValue * 100));
   const improvementLines = composeImprovementLines(displayLines, warnings, safetyLevel);
 
   useEffect(() => {
@@ -102,9 +127,6 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
     };
   }, [result?.session_id]);
 
-  const summary = progress?.workoutSummary;
-  const exerciseLabel = useMemo(() => formatExerciseName(exerciseType), [exerciseType]);
-  const statusLabel = displayResult?.status === "skipped" ? "건너뜀" : "완료";
   const previousWorkout = useMemo(() => {
     const workouts = progress?.recentWorkouts ?? [];
     return workouts.find((item) => {
@@ -119,25 +141,17 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   }, [progress?.recentWorkouts, exerciseType, result?.session_id]);
 
   const previousStability = previousWorkout?.stabilityScore ?? null;
-  const previousPostureErrorCount = previousWorkout?.postureErrors?.length ?? null;
-  const currentStability = typeof stability === "number" ? stability : null;
+  const currentStability = stabilityValue;
   const stabilityDeltaPercent = currentStability != null && previousStability != null ? Math.round((currentStability - previousStability) * 100) : null;
-  const postureErrorDelta = previousPostureErrorCount == null ? null : postureErrorCount - previousPostureErrorCount;
-  const stabilityDeltaReason =
-    currentStability != null && previousStability != null
-      ? `이번 세션 ${Math.round(currentStability * 100)}% - 직전 세션 ${Math.round(previousStability * 100)}% 기준입니다.`
-      : "직전 같은 운동 세션의 안정도 데이터가 부족해 비교가 어렵습니다.";
-  const leftRightDiff = leftCount != null && rightCount != null ? Math.abs(leftCount - rightCount) : null;
-  const balanceLabel = leftRightDiff == null ? "판단 불가" : leftRightDiff <= 1 ? "균형 좋음" : leftRightDiff <= 3 ? "조금 불균형" : "불균형 주의";
-  const balanceToneClass = leftRightDiff == null ? "is-neutral" : leftRightDiff <= 1 ? "is-good" : leftRightDiff <= 3 ? "is-mid" : "is-bad";
-  const avgStability = summary?.avgStabilityScore ?? null;
-  const stabilityVsAverage = currentStability != null && avgStability != null ? Math.round((currentStability - avgStability) * 100) : null;
-  const byExercise = Object.entries(summary?.byExercise ?? {}).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
-  const maxByExercise = Math.max(...byExercise.map(([, value]) => value), 1);
+  const previousPostureErrorCount = previousWorkout?.postureErrors?.length ?? null;
+  const postureErrorDelta = previousPostureErrorCount == null ? null : postureErrors.length - previousPostureErrorCount;
+  const statusLabel = displayResult?.status === "skipped" ? "건너뜀" : "완료";
+  const savedLabel = storedResult ? "PC3 저장 결과 확인 완료" : result?.session_id ? "PC3 저장 결과 확인 중" : "이번 세션 기록";
+  const resultDate = app.selectedDay?.scheduledDate ?? todayIso();
 
   if (!result) {
     return (
-      <AppShell title="RESULT" subtitle="표시할 결과가 없습니다.">
+      <AppShell title="결과" subtitle="표시할 결과가 없습니다.">
         <button type="button" className="button button--primary" onClick={() => navigate("/mode")}>
           루틴으로
         </button>
@@ -147,9 +161,9 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
 
   return (
     <AppShell
-      title="RESULT"
-      step="STEP 6"
-      subtitle={`${profile?.name ?? "사용자"}님의 운동 결과와 PC3 저장 기록입니다.`}
+      title="결과"
+      step="6단계"
+      subtitle="운동 직후에 필요한 내용만 먼저 정리했어요."
       footer={
         <div className="footer-actions">
           <button type="button" className="button button--ghost" onClick={() => navigate("/mode")}>
@@ -159,7 +173,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
             <button
               type="button"
               className="button button--ghost"
-              onClick={() => navigate(`/history?date=${encodeURIComponent(app.selectedDay?.scheduledDate ?? todayIso())}&session_id=${encodeURIComponent(result.session_id)}`)}
+              onClick={() => navigate(`/history?date=${encodeURIComponent(resultDate)}&session_id=${encodeURIComponent(result.session_id)}`)}
             >
               기록에서 보기
             </button>
@@ -178,149 +192,89 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
         </div>
       }
     >
-      <div className="result-grid">
-        <section className="panel result-hero result-panel result-panel--wide">
-          <span className="eyebrow">PANEL 1</span>
-          <h3 className="result-panel-title">오늘 운동 요약</h3>
-          <h2>{exerciseLabel}</h2>
-          <strong>{displayResult?.status === "skipped" ? "SKIP" : count}</strong>
-          <p>{message}</p>
-          <div className="result-kpi-mini">
-            <div>
-              <span>상태</span>
-              <strong>{statusLabel}</strong>
-            </div>
-            <div>
-              <span>운동</span>
-              <strong>{exerciseLabel}</strong>
-            </div>
-            <div>
-              <span>횟수</span>
-              <strong>{count}</strong>
-            </div>
+      <div className="result-grid result-grid--coach">
+        <section className="panel result-hero result-hero--coach">
+          <div>
+            <span className="eyebrow">운동 완료</span>
+            <h2>{exerciseLabel}</h2>
+            <p>{message}</p>
+          </div>
+          <div className="result-count-tile">
+            <span>{statusLabel}</span>
+            <strong>{displayResult?.status === "skipped" ? "건너뜀" : count}</strong>
+            <em>{savedLabel}</em>
           </div>
         </section>
 
-        <section className="panel result-panel">
-          <span className="eyebrow">PANEL 2</span>
-          <h3 className="result-panel-title">자세 안정도 점수</h3>
-          <div className="result-meter">
-            <div className="result-meter__track">
-              <div className="result-meter__fill" style={{ width: `${Math.max(0, Math.min(100, stabilityPercent ?? 0))}%` }} />
-            </div>
-            <strong>{stabilityPercent == null ? "-" : `${stabilityPercent}%`}</strong>
-          </div>
-          <p className="result-delta-copy">
-            평균 대비: {stabilityVsAverage == null ? "비교 불가" : `${stabilityVsAverage > 0 ? "+" : ""}${stabilityVsAverage}%`}
-          </p>
+        <section className="panel result-coach-card result-coach-card--good">
+          <span className="eyebrow">오늘 잘한 점</span>
+          <h3>{positiveMessage}</h3>
+          <p>측정 상태는 {measurementQuality}이고, 안정도는 {scoreLabel(stabilityValue)}로 기록됐습니다.</p>
         </section>
 
-        <section className="panel result-panel">
-          <span className="eyebrow">PANEL 3</span>
-          <h3 className="result-panel-title">좌우 밸런스</h3>
-          <div className="result-kpi-mini">
+        <section className="panel result-coach-card result-coach-card--next">
+          <span className="eyebrow">다음엔 이렇게</span>
+          <h3>다음 운동에서 바로 써먹을 포인트예요.</h3>
+          <ul className="result-action-list">
+            {improvementLines.slice(0, 3).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
+          </ul>
+        </section>
+
+        <section className="panel result-record-card">
+          <div className="panel-heading-row">
             <div>
-              <span>왼쪽</span>
-              <strong>{leftCount ?? "-"}</strong>
+              <span className="eyebrow">오늘 기록</span>
+              <h3 className="result-panel-title">핵심 수치</h3>
             </div>
-            <div>
-              <span>오른쪽</span>
-              <strong>{rightCount ?? "-"}</strong>
-            </div>
-            <div>
-              <span>차이</span>
-              <strong>{leftRightDiff ?? "-"}</strong>
-            </div>
+            <button type="button" className="button button--ghost" onClick={() => setDetailsOpen((value) => !value)}>
+              {detailsOpen ? "자세 상세 접기" : "자세 상세 보기"}
+            </button>
           </div>
-          <div className={`result-balance-chip ${balanceToneClass}`}>
-            <span>밸런스 상태</span>
-            <strong>{balanceLabel}</strong>
+          <div className="result-record-grid">
+            <div><span>횟수</span><strong>{count}</strong></div>
+            <div><span>안정도</span><strong>{scoreLabel(stabilityValue)}</strong></div>
+            <div><span>좌우 균형</span><strong>{balanceLabel(leftCount, rightCount)}</strong></div>
+            <div><span>측정 상태</span><strong>{measurementQuality}</strong></div>
           </div>
         </section>
 
-        <section className="panel result-panel">
-          <span className="eyebrow">PANEL 4</span>
-          <h3 className="result-panel-title">자세 요약</h3>
-          <p className="result-delta-copy">총 오류: {postureErrorCount}개</p>
-          <div className="result-posture-card">
-            {postureErrorTop3.length ? (
-              <ul>
-                {postureErrorTop3.map((item, index) => <li key={`${item}-${index}`}>{formatPostureError(item)}</li>)}
-              </ul>
-            ) : (
-              <p>감지된 자세 오류가 없습니다.</p>
-            )}
-          </div>
-        </section>
-
-        <section className="panel result-panel">
-          <span className="eyebrow">PANEL 5</span>
-          <h3 className="result-panel-title">지난번 운동이랑 비교</h3>
-          <div className="result-improvement-strip">
-            <div>
-              <span>안정도 변화</span>
-              <strong className={stabilityDeltaPercent == null ? "is-neutral" : stabilityDeltaPercent >= 0 ? "is-good" : "is-bad"}>
-                {stabilityDeltaPercent == null ? "비교 불가" : `${stabilityDeltaPercent > 0 ? "+" : ""}${stabilityDeltaPercent}%`}
-              </strong>
-            </div>
-            <div>
-              <span>자세 오류 변화</span>
-              <strong className={postureErrorDelta == null ? "is-neutral" : postureErrorDelta <= 0 ? "is-good" : "is-bad"}>
-                {postureErrorDelta == null ? "비교 불가" : `${postureErrorDelta > 0 ? "+" : ""}${postureErrorDelta}개`}
-              </strong>
-            </div>
-          </div>
-          <p className="result-delta-copy">{stabilityDeltaReason}</p>
-        </section>
-
-        <section className="panel result-panel result-panel--wide">
-          <span className="eyebrow">PANEL 6</span>
-          <h3 className="result-panel-title">최근 30일 진행 지표</h3>
-          <p className="result-delta-copy">체중 변화 {formatWeightDelta(progress?.weightDeltaKg ?? null)}</p>
-          <div className="stats-grid">
-            <div><span>세션</span><strong>{summary?.sessionCount ?? 0}</strong></div>
-            <div><span>운동</span><strong>{summary?.workoutCount ?? 0}</strong></div>
-            <div><span>스킵</span><strong>{summary?.skippedCount ?? 0}</strong></div>
-            <div><span>총 횟수</span><strong>{summary?.totalReps ?? 0}</strong></div>
-            <div><span>시간</span><strong>{formatDuration(summary?.totalDurationSec)}</strong></div>
-            <div><span>안정도</span><strong>{stabilityPercent ?? (summary?.avgStabilityScore == null ? "-" : Math.round(summary.avgStabilityScore * 100))}%</strong></div>
-          </div>
-        </section>
-
-        <section className="panel result-panel">
-          <span className="eyebrow">PANEL 7</span>
-          <h3 className="result-panel-title">운동 종류별 누적 횟수</h3>
-          {byExercise.length ? (
-            <div className="result-bar-list">
-              {byExercise.map(([key, value]) => (
-                <div key={key} className="result-bar-row">
-                  <span>{formatExerciseName(key)}</span>
-                  <div className="result-bar-track">
-                    <div className="result-bar-fill" style={{ width: `${Math.round((value / maxByExercise) * 100)}%` }} />
+        {detailsOpen ? (
+          <section className="panel result-detail-card">
+            <span className="eyebrow">상세 기록</span>
+            <div className="result-detail-grid">
+              <article>
+                <h3>자세 요약</h3>
+                {postureErrors.length ? (
+                  <ul>
+                    {postureErrors.slice(0, 4).map((item, index) => <li key={`${item}-${index}`}>{formatPostureError(item)}</li>)}
+                  </ul>
+                ) : (
+                  <p>감지된 자세 오류가 없습니다.</p>
+                )}
+              </article>
+              <article>
+                <h3>지난번과 비교</h3>
+                <p>안정도 변화: {stabilityDeltaPercent == null ? "비교 불가" : `${stabilityDeltaPercent > 0 ? "+" : ""}${stabilityDeltaPercent}%`}</p>
+                <p>자세 오류 변화: {postureErrorDelta == null ? "비교 불가" : `${postureErrorDelta > 0 ? "+" : ""}${postureErrorDelta}개`}</p>
+              </article>
+              <article className="result-detail-card__wide">
+                <h3>PC3/PC2 근거</h3>
+                {evidence.length ? (
+                  <div className="result-evidence-list">
+                    {evidence.slice(0, 4).map((item, index) => (
+                      <div key={`${item.id ?? item.source_id ?? index}`}>
+                        <strong>{detailLabel(item)}</strong>
+                        <p>{detailText(item)}</p>
+                      </div>
+                    ))}
                   </div>
-                  <strong>{value}</strong>
-                </div>
-              ))}
+                ) : (
+                  <p>이번 결과에 표시할 근거가 없습니다.</p>
+                )}
+              </article>
             </div>
-          ) : (
-            <p className="result-delta-copy">누적 운동 데이터가 없습니다.</p>
-          )}
-        </section>
-
-        <section className="panel result-panel">
-          <span className="eyebrow">PANEL 8</span>
-          <h3 className="result-panel-title">코칭 한 줄 행동 가이드</h3>
-          {positiveMessage && <p><strong>{positiveMessage}</strong></p>}
-          <p className="result-delta-copy">{message}</p>
-          {improvementLines.length ? (
-            <ul className="result-action-list">
-              {improvementLines.slice(0, 3).map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
-            </ul>
-          ) : (
-            <p className="result-delta-copy">추가 행동 가이드가 없습니다.</p>
-          )}
-        </section>
-
+          </section>
+        ) : null}
       </div>
     </AppShell>
   );

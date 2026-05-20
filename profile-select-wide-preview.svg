@@ -1,0 +1,80 @@
+﻿<svg xmlns="http://www.w3.org/2000/svg" width="1920" height="1080" viewBox="0 0 1920 1080">
+  <defs>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feColorMatrix in="blur" type="matrix" values="0 0 0 0 0.22 0 0 0 0 1 0 0 0 0 0.08 0 0 0 .8 0" result="g"/>
+      <feMerge><feMergeNode in="g"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <linearGradient id="cardSel" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0d3308"/>
+      <stop offset="1" stop-color="#071707"/>
+    </linearGradient>
+    <style>
+      .bg{fill:#080908}.title{fill:#39ff14;font:900 72px 'Segoe UI','Malgun Gothic',sans-serif;letter-spacing:8px;filter:url(#glow)}
+      .sub{fill:#b9c9b9;font:700 18px 'Malgun Gothic','Segoe UI',sans-serif}.card{fill:#071607;stroke:#1aff00;stroke-opacity:.42;stroke-width:1.4;rx:12}.sel{fill:url(#cardSel);stroke:#39ff14;stroke-width:2;rx:12;filter:url(#glow)}
+      .avatar{fill:#092409;stroke:#39ff14;stroke-width:3}.photo{fill:#124d28;stroke:#39ff14;stroke-width:3}.name{fill:#fff;font:900 22px 'Malgun Gothic','Segoe UI',sans-serif}.status{fill:#c7dcc7;font:800 14px 'Malgun Gothic','Segoe UI',sans-serif}.green{fill:#39ff14;font:900 46px 'Segoe UI','Malgun Gothic',sans-serif}.btn{fill:#39ff14;rx:9;filter:url(#glow)}.btnText{fill:#061006;font:900 18px 'Malgun Gothic','Segoe UI',sans-serif}.ghost{fill:#071407;stroke:#1aff00;stroke-opacity:.35;stroke-width:1.5;rx:9}.hint{fill:#8fa88f;font:700 14px 'Malgun Gothic','Segoe UI',sans-serif}.arrow{fill:#39ff14;font:900 44px 'Segoe UI',sans-serif;filter:url(#glow)}
+    </style>
+  </defs>
+  <rect class="bg" width="1920" height="1080"/>
+  <text class="title" x="640" y="132">SMART MIRROR</text>
+  <text class="sub" x="884" y="170">프로필을 선택하세요</text>
+
+  <text class="arrow" x="82" y="520">‹</text>
+  <text class="arrow" x="1808" y="520">›</text>
+
+  <g transform="translate(160 300)">
+    <rect class="sel" width="230" height="260"/>
+    <circle class="photo" cx="115" cy="78" r="48"/>
+    <text class="name" x="82" y="156">양하준</text>
+    <text class="status" x="44" y="190">운동 준비 완료</text>
+    <text class="status" x="72" y="214">바로 시작</text>
+  </g>
+  <g transform="translate(430 300)">
+    <rect class="card" width="230" height="260"/>
+    <circle class="avatar" cx="115" cy="78" r="48"/>
+    <text class="green" x="100" y="94">d</text>
+    <text class="name" x="107" y="156">d</text>
+    <text class="status" x="44" y="190">운동 준비 완료</text>
+    <text class="status" x="72" y="214">바로 시작</text>
+  </g>
+  <g transform="translate(700 300)">
+    <rect class="card" width="230" height="260"/>
+    <circle class="avatar" cx="115" cy="78" r="48"/>
+    <text class="green" x="98" y="94">D</text>
+    <text class="name" x="58" y="156">Demo User</text>
+    <text class="status" x="44" y="190">운동 준비 완료</text>
+    <text class="status" x="72" y="214">바로 시작</text>
+  </g>
+  <g transform="translate(970 300)">
+    <rect class="card" width="230" height="260"/>
+    <circle class="photo" cx="115" cy="78" r="48"/>
+    <text class="name" x="96" y="156">asd</text>
+    <text class="status" x="44" y="190">운동 준비 완료</text>
+    <text class="status" x="72" y="214">바로 시작</text>
+  </g>
+  <g transform="translate(1240 300)">
+    <rect class="card" width="230" height="260"/>
+    <circle class="avatar" cx="115" cy="78" r="48"/>
+    <text class="green" x="99" y="94">S</text>
+    <text class="name" x="103" y="156">ss</text>
+    <text class="status" x="38" y="190">기존 촬영 필요</text>
+    <text class="status" x="54" y="214">정보 입력 필요</text>
+  </g>
+  <g transform="translate(1510 300)">
+    <rect class="card" width="230" height="260"/>
+    <circle class="photo" cx="115" cy="78" r="48"/>
+    <text class="name" x="83" y="156">오승주</text>
+    <text class="status" x="44" y="190">운동 준비 완료</text>
+    <text class="status" x="72" y="214">바로 시작</text>
+  </g>
+
+  <g transform="translate(775 610)">
+    <rect class="card" width="370" height="96"/>
+    <text class="green" x="170" y="58">+</text>
+    <text class="status" x="148" y="82">프로필 추가</text>
+  </g>
+
+  <rect class="btn" x="780" y="805" width="360" height="58"/>
+  <text class="btnText" x="923" y="842">선택하기</text>
+  <text class="hint" x="714" y="902">가로형으로 바꾸면 세로 스크롤은 줄지만, 프로필이 6명 이상이면 좌우 캐러셀/화살표가 필요합니다.</text>
+</svg>
