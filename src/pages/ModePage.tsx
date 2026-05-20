@@ -465,6 +465,9 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
               </button>
             ) : null}
           </div>
+          {isTodaySelected && !canStart ? (
+            <p className="today-cta-copy">지금 추천 루틴을 생성하면 오늘 루틴을 바로 시작할 수 있어요.</p>
+          ) : null}
         </section>
       </div>
     </AppShell>

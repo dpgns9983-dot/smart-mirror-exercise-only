@@ -610,6 +610,17 @@
   margin-top: 0;
 }
 
+.today-cta-copy {
+  margin: 0.2rem 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.35;
+}
+
+.today-panel--empty .today-cta-copy {
+  color: rgba(39, 226, 255, 0.86);
+}
+
 .today-panel--mode > h2,
 .today-panel--mode > p {
   display: -webkit-box;
