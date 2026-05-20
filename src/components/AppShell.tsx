@@ -17,15 +17,6 @@ type AppShellProps = {
 export default function AppShell({ step, title, subtitle, children, footer, className = "", showBack = true, backFallbackTo }: AppShellProps) {
   return (
     <main className={`mirror-shell ${className}`}>
-      {/* TEMP_UI_BUTTON_START */}
-      <button
-        type="button"
-        className="temp-quick-button"
-        onClick={() => window.alert("임시 버튼 동작")}
-      >
-        임시 버튼
-      </button>
-      {/* TEMP_UI_BUTTON_END */}
       {showBack ? <BackButton fallbackTo={backFallbackTo} /> : null}
       <WindowControls />
       <header className="mirror-shell__header">

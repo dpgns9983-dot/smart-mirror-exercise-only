@@ -76,17 +76,29 @@ export default function App() {
   const navigate = useNavigate();
 
   return (
-    <Routes>
-      <Route path="/" element={<Navigate to="/profile-select" replace />} />
-      <Route path="/profile-select" element={<ProfileSelectPage navigate={navigate} />} />
-      <Route path="/baseline-check" element={<GuardedProfileInput />} />
-      <Route path="/baseline-setup" element={<GuardedBaseline />} />
-      <Route path="/mode" element={<GuardedMode />} />
-      <Route path="/session" element={<GuardedSession />} />
-      <Route path="/camera" element={<Navigate to="/session" replace />} />
-      <Route path="/result" element={<GuardedResult />} />
-      <Route path="/history" element={<GuardedHistory />} />
-      <Route path="*" element={<Navigate to="/" replace />} />
-    </Routes>
+    <>
+      {/* TEMP_UI_BUTTON_START */}
+      <button
+        type="button"
+        className="temp-quick-button"
+        onClick={() => window.alert("임시 버튼 동작")}
+      >
+        임시 버튼
+      </button>
+      {/* TEMP_UI_BUTTON_END */}
+
+      <Routes>
+        <Route path="/" element={<Navigate to="/profile-select" replace />} />
+        <Route path="/profile-select" element={<ProfileSelectPage navigate={navigate} />} />
+        <Route path="/baseline-check" element={<GuardedProfileInput />} />
+        <Route path="/baseline-setup" element={<GuardedBaseline />} />
+        <Route path="/mode" element={<GuardedMode />} />
+        <Route path="/session" element={<GuardedSession />} />
+        <Route path="/camera" element={<Navigate to="/session" replace />} />
+        <Route path="/result" element={<GuardedResult />} />
+        <Route path="/history" element={<GuardedHistory />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    </>
   );
 }
