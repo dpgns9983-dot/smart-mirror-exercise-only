@@ -105,3 +105,50 @@ PC1 UI -> PC3 Vision Gateway -> PC2 NVIDIA/RAG Engine
 - PC1은 UI와 사용자 경험에 집중
 - 데이터 신뢰 원천은 PC3 계약
 - 현재 구조는 운영/확장(루틴/코칭/분석) 분리에 유리
+
+## 11. 빌드 방법(발표용 운영 절차)
+사전 준비:
+- `.env`의 `VITE_PC3_URL`을 실제 PC3 주소로 설정
+- 예: `VITE_PC3_URL=http://192.168.219.44:9000`
+
+기본 빌드 검증:
+```powershell
+npm run build
+```
+
+설치파일 빌드(Tauri NSIS):
+```powershell
+npm run tauri -- build
+```
+
+자동 배치 사용 시:
+```text
+Build-PC1-Installer.cmd
+```
+
+최종 산출물:
+- 루트 기준 `SmartMirror-PC1-Setup.exe`
+
+## 12. 앱(설치본) 만드는 순서
+1. `VITE_PC3_URL`을 배포 대상 환경(PC3 IP)으로 설정
+2. `npm run tauri -- build` 실행
+3. 생성된 NSIS 설치파일을 `SmartMirror-PC1-Setup.exe`로 확정
+4. 설치파일을 전달용 위치(예: 바탕화면)로 복사
+5. 대상 PC에서 설치 실행
+
+중요:
+- 설치앱은 빌드 시점의 `VITE_PC3_URL`이 내장된다.
+- PC3 IP가 바뀌면 `.env` 수정 후 설치파일을 다시 빌드해야 한다.
+
+## 13. 설치 후 다른 PC(PC3) 연결 방법
+1. PC1 장비와 PC3 장비가 같은 네트워크(LAN)인지 확인
+2. PC3 서비스 실행 상태 확인(포트 9000)
+3. PC1 실행 후 프로필 목록 조회로 1차 확인
+4. 연결 실패 시 점검:
+	- PC3 IP/포트 오입력 여부
+	- 방화벽 인바운드 허용(9000)
+	- PC3 API 프로세스 실행 여부
+
+연결 성공 기준:
+- `GET /api/users/profiles`가 정상 응답(200)
+- PC1 프로필 화면에서 목록이 표시됨
