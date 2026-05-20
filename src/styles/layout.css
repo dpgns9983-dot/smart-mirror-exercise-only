@@ -39,6 +39,20 @@
   line-height: 1;
 }
 
+.temp-quick-button {
+  position: fixed;
+  right: 12px;
+  bottom: 12px;
+  z-index: 70;
+  min-height: 34px;
+  border: 1px dashed rgba(255, 204, 102, 0.72);
+  border-radius: 8px;
+  background: rgba(8, 10, 12, 0.9);
+  color: var(--warn);
+  padding: 0 0.8rem;
+  font-weight: 900;
+}
+
 .mirror-shell {
   width: 100vw;
   height: 100vh;
