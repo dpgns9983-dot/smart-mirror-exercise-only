@@ -1542,6 +1542,33 @@
   box-shadow: inset 0 0 0 1px rgba(39, 226, 255, 0.28);
 }
 
+/* 안전 경보 패널 */
+.panel--danger {
+  border-color: rgba(255, 68, 68, 0.4);
+  background: rgba(255, 68, 68, 0.06);
+}
+
+.panel--danger .eyebrow {
+  color: rgba(255, 68, 68, 0.8);
+}
+
+.panel--danger h2 {
+  color: rgba(255, 100, 100, 0.9);
+}
+
+.panel--warn {
+  border-color: rgba(255, 165, 0, 0.4);
+  background: rgba(255, 165, 0, 0.06);
+}
+
+.panel--warn .eyebrow {
+  color: rgba(255, 165, 0, 0.8);
+}
+
+.panel--warn h2 {
+  color: rgba(255, 180, 0, 0.9);
+}
+
 .history-session-summary {
   color: var(--text);
   font-weight: 800;

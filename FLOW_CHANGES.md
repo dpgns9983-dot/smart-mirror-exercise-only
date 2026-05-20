@@ -1,5 +1,17 @@
 # Flow Changes
 
+## 결과 화면 코칭 요약 톤 및 안전 경보 도입 (UX/Display)
+
+이번 변경은 PC3에서 받아온 코칭 데이터(warnings, display_lines, stability_score, measurement_quality)를 PC1이 재해석해 더 자연스러운 톤으로 표시하는 합성 레이어입니다.
+
+- PC3 원본 필드는 그대로 유지하고, 화면 표시 계층에서만 재구성했습니다(데이터 계약 무변경).
+- 안정도 + warnings를 조합해 safety level(danger/caution/safe/neutral)을 판정하고, 그에 맞는 긍정 메시지를 합성합니다.
+- danger 또는 caution 레벨에서는 별도 "SAFETY" 패널이 나타나 체크리스트(통증 확인, 자세 점검 등)를 제시합니다.
+- COACH LOGS 섹션의 로그 제목을 단순 summary에서 목적+시각+본문으로 확장해 로그 간 구분을 명확히 했습니다.
+- API 응답 구조/코칭 로직은 건드리지 않았고, PC1의 표시 레이어 재해석만 추가했습니다.
+
+*** End Patch
+
 ## 프로필 선택 이동 트리거 분리 + 선택 화면 시안 통일 (UX/Style)
 
 이번 변경은 사용자 조작 타이밍과 선택 상태 시각 톤을 함께 정리한 작업입니다.

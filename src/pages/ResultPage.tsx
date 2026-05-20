@@ -5,7 +5,16 @@ import AppShell from "../components/AppShell";
 import { getCoachLogs, getProgress, getSessionResult } from "../services/api";
 import { useAppState } from "../state/AppContext";
 import type { CoachLog, ProgressResponse, SessionFinalResponse } from "../types/domain";
-import { formatCoachPurpose, formatDuration, formatEvidenceMeta, formatExerciseName, formatWeightDelta, todayIso } from "../utils/format";
+import { formatDuration, formatEvidenceMeta, formatExerciseName, formatWeightDelta, todayIso } from "../utils/format";
+import {
+  composeCoachLogBody,
+  composeCoachLogTitle,
+  composeEvidenceLabel,
+  composeImprovementLines,
+  composePositiveLine,
+  composeSafetyAlert,
+  resolveSafetyLevel,
+} from "../utils/coachingCopy";
 
 function featureValue(features: Record<string, unknown> | undefined, key: string): unknown {
   const exercise = features?.exercise;
@@ -13,12 +22,6 @@ function featureValue(features: Record<string, unknown> | undefined, key: string
     return (exercise as Record<string, unknown>)[key];
   }
   return features?.[key];
-}
-
-function coachTitle(log: CoachLog): string {
-  const purpose = formatCoachPurpose(log.purpose);
-  const fallback = purpose || "코칭 기록";
-  return log.finalResponse?.summary ?? log.finalResponse?.mirror_message ?? String(log.pc2Output?.summary ?? fallback);
 }
 
 export default function ResultPage({ navigate }: { navigate: NavigateFunction }) {
@@ -40,6 +43,19 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   const displayLines = displayResult?.coaching?.pc2_payload?.display_lines ?? [];
   const evidence = displayResult?.coaching?.pc2_payload?.evidence ?? [];
   const message = displayResult?.coaching?.mirror_message ?? displayResult?.coaching?.summary ?? "운동 결과를 정리했습니다.";
+
+  // 안전 레벨 결정
+  const safetyLevel = resolveSafetyLevel({
+    warnings,
+    stability: typeof stability === "number" ? stability : null,
+    measurementQuality,
+  });
+  const positiveMessage = composePositiveLine(
+    safetyLevel,
+    formatExerciseName(exerciseType),
+  );
+  const improvementLines = composeImprovementLines(displayLines, warnings, safetyLevel);
+  const safetyAlert = composeSafetyAlert(safetyLevel, warnings);
 
   useEffect(() => {
     if (!profile) {
@@ -131,14 +147,29 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
         <section className="panel">
           <span className="eyebrow">COACHING</span>
           <h2>코칭 요약</h2>
-          {displayResult?.coaching?.summary ? <p>{displayResult.coaching.summary}</p> : null}
-          {displayLines.length ? (
-            <ul>
-              {displayLines.map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
-            </ul>
+          {positiveMessage && <p><strong>{positiveMessage}</strong></p>}
+          {improvementLines.length ? (
+            <>
+              <p style={{ marginTop: "0.5em", fontSize: "0.9em", opacity: 0.8 }}>다음 세트에서 개선할 점</p>
+              <ul>
+                {improvementLines.map((line, index) => <li key={`${line}-${index}`}>{line}</li>)}
+              </ul>
+            </>
           ) : null}
-          {warnings.map((warning, index) => <em key={`${warning}-${index}`}>주의: {warning}</em>)}
+          {displayResult?.coaching?.summary && (
+            <p style={{ marginTop: "1em", fontSize: "0.8em", opacity: 0.6, fontStyle: "italic" }}>PC3 원문: {displayResult.coaching.summary}</p>
+          )}
         </section>
+
+        {safetyAlert && (
+          <section className={`panel panel--${safetyLevel === "danger" ? "danger" : "warn"}`}>
+            <span className="eyebrow">SAFETY</span>
+            <h2>{safetyAlert.headline}</h2>
+            <ul>
+              {safetyAlert.checklist.map((item, index) => <li key={`${item}-${index}`}>{item}</li>)}
+            </ul>
+          </section>
+        )}
 
         <section className="panel">
           <span className="eyebrow">EVIDENCE</span>
@@ -146,8 +177,8 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
           {evidence.length === 0 ? <p>표시할 근거가 없습니다.</p> : null}
           {evidence.slice(0, 5).map((item, index) => (
             <article key={`${item.id ?? index}`}>
-              <strong>{item.title || item.source_title || item.summary || item.text || "운동 근거"}</strong>
-              <span>{formatEvidenceMeta(item.exercise, item.category)}</span>
+              <strong>{composeEvidenceLabel(item)}</strong>
+              <span style={{ fontSize: "0.8em", opacity: 0.7 }}>{formatEvidenceMeta(item.exercise, item.category)}</span>
             </article>
           ))}
         </section>
@@ -168,12 +199,15 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
         <section className="panel">
           <span className="eyebrow">COACH LOGS</span>
           <h2>최근 코칭 로그</h2>
-          {coachLogs.map((log) => (
-            <article key={`${log.id ?? log.requestId ?? log.createdAt}`}>
-              <strong>{coachTitle(log)}</strong>
-              <span>{log.createdAt?.slice(0, 10) ?? ""}</span>
-            </article>
-          ))}
+          {coachLogs.map((log) => {
+            const body = composeCoachLogBody(log);
+            return (
+              <article key={`${log.id ?? log.requestId ?? log.createdAt}`}>
+                <strong>{composeCoachLogTitle(log)}</strong>
+                {body && <span style={{ fontSize: "0.85em", opacity: 0.7 }}>{body}</span>}
+              </article>
+            );
+          })}
         </section>
       </div>
     </AppShell>
