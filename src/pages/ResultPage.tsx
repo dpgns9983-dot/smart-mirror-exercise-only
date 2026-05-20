@@ -38,21 +38,6 @@ function toStringArray(value: unknown): string[] {
   return value.map(String).filter((item) => item.trim().length > 0);
 }
 
-function humanize(value: string): string {
-  return value.replace(/_/g, " ");
-}
-
-function toEntryList(value: unknown, limit = 6): Array<[string, string]> {
-  if (!value || typeof value !== "object") {
-    return [];
-  }
-  const payload = value as Record<string, unknown>;
-  return Object.entries(payload)
-    .filter(([, item]) => ["string", "number", "boolean"].includes(typeof item))
-    .slice(0, limit)
-    .map(([key, item]) => [humanize(key), String(item)]);
-}
-
 export default function ResultPage({ navigate }: { navigate: NavigateFunction }) {
   const app = useAppState();
   const result = app.lastResult;
@@ -68,8 +53,6 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   const stability = featureValue(displayResult?.features, "stability_score");
   const stabilityPercent = typeof stability === "number" ? Math.round(stability * 100) : null;
   const measurementQuality = String(featureValue(displayResult?.features, "measurement_quality") ?? "기록 없음");
-  const measurementConfidence = toNumber(featureValue(displayResult?.features, "measurement_confidence"));
-  const measurementConfidencePercent = measurementConfidence == null ? null : Math.round(measurementConfidence * 100);
   const postureErrors = toStringArray(featureValue(displayResult?.features, "posture_errors"));
   const postureErrorCount = postureErrors.length;
   const postureErrorTop3 = postureErrors.slice(0, 3);
@@ -145,15 +128,8 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   const balanceToneClass = leftRightDiff == null ? "is-neutral" : leftRightDiff <= 1 ? "is-good" : leftRightDiff <= 3 ? "is-mid" : "is-bad";
   const avgStability = summary?.avgStabilityScore ?? null;
   const stabilityVsAverage = currentStability != null && avgStability != null ? Math.round((currentStability - avgStability) * 100) : null;
-  const qualityToneClass =
-    measurementQuality === "low_quality" || measurementQuality === "poor"
-      ? "is-bad"
-      : measurementQuality === "fair"
-        ? "is-mid"
-        : "is-good";
   const byExercise = Object.entries(summary?.byExercise ?? {}).sort((a, b) => (b[1] ?? 0) - (a[1] ?? 0));
   const maxByExercise = Math.max(...byExercise.map(([, value]) => value), 1);
-  const baselineDiffEntries = toEntryList(displayResult?.baseline_diff, 8);
 
   if (!result) {
     return (
@@ -199,7 +175,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
       }
     >
       <div className="result-grid">
-        <section className="panel result-hero result-panel">
+        <section className="panel result-hero result-panel result-panel--wide">
           <span className="eyebrow">PANEL 1</span>
           <h3 className="result-panel-title">오늘 운동 요약</h3>
           <h2>{exerciseLabel}</h2>
@@ -260,25 +236,6 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
 
         <section className="panel result-panel">
           <span className="eyebrow">PANEL 4</span>
-          <h3 className="result-panel-title">측정 신뢰도/품질</h3>
-          <div className="result-kpi-mini">
-            <div>
-              <span>신뢰도</span>
-              <strong>{measurementConfidencePercent == null ? "-" : `${measurementConfidencePercent}%`}</strong>
-            </div>
-            <div>
-              <span>품질</span>
-              <strong>{humanize(measurementQuality)}</strong>
-            </div>
-            <div>
-              <span>판정</span>
-              <strong className={qualityToneClass}>{qualityToneClass === "is-good" ? "양호" : qualityToneClass === "is-mid" ? "보통" : "주의"}</strong>
-            </div>
-          </div>
-        </section>
-
-        <section className="panel result-panel">
-          <span className="eyebrow">PANEL 5</span>
           <h3 className="result-panel-title">자세 오류 요약</h3>
           <p className="result-delta-copy">총 오류: {postureErrorCount}개</p>
           <div className="result-posture-card">
@@ -293,7 +250,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
         </section>
 
         <section className="panel result-panel">
-          <span className="eyebrow">PANEL 6</span>
+          <span className="eyebrow">PANEL 5</span>
           <h3 className="result-panel-title">전 세션 대비 개선도</h3>
           <div className="result-improvement-strip">
             <div>
@@ -311,8 +268,8 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
           </div>
         </section>
 
-        <section className="panel result-panel">
-          <span className="eyebrow">PANEL 7</span>
+        <section className="panel result-panel result-panel--wide">
+          <span className="eyebrow">PANEL 6</span>
           <h3 className="result-panel-title">최근 30일 진행 지표</h3>
           <p className="result-delta-copy">체중 변화 {formatWeightDelta(progress?.weightDeltaKg ?? null)}</p>
           <div className="stats-grid">
@@ -326,7 +283,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
         </section>
 
         <section className="panel result-panel">
-          <span className="eyebrow">PANEL 8</span>
+          <span className="eyebrow">PANEL 7</span>
           <h3 className="result-panel-title">운동 종류별 누적 횟수</h3>
           {byExercise.length ? (
             <div className="result-bar-list">
@@ -346,24 +303,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
         </section>
 
         <section className="panel result-panel">
-          <span className="eyebrow">PANEL 9</span>
-          <h3 className="result-panel-title">기준 촬영 대비 변화</h3>
-          {baselineDiffEntries.length ? (
-            <div className="result-baseline-list">
-              {baselineDiffEntries.map(([key, value]) => (
-                <div key={key}>
-                  <span>{key}</span>
-                  <strong>{value}</strong>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <p className="result-delta-copy">baseline_diff 데이터가 없습니다.</p>
-          )}
-        </section>
-
-        <section className="panel result-panel">
-          <span className="eyebrow">PANEL 10</span>
+          <span className="eyebrow">PANEL 8</span>
           <h3 className="result-panel-title">코칭 한 줄 행동 가이드</h3>
           {positiveMessage && <p><strong>{positiveMessage}</strong></p>}
           <p className="result-delta-copy">{message}</p>
