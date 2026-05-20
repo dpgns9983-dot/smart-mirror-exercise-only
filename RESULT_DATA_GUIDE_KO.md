@@ -143,3 +143,84 @@
 
 즉, "호출 가능한 데이터가 없는 상태"는 아닙니다.
 화면 설계만 정리하면 충분히 좋은 결과 화면을 만들 수 있습니다.
+
+---
+
+## 8) 지금 데이터로 만들 수 있는 패널 10가지
+
+아래는 현재 PC3 응답만으로 바로 만들 수 있는 패널들입니다.
+
+### 패널 1: 오늘 운동 요약
+- 목적: 이번 세션 결과를 한눈에 보여줌
+- 표시 데이터
+  - exercise type
+  - count
+  - status(completed/skipped)
+
+### 패널 2: 자세 안정도 점수
+- 목적: 동작 품질을 숫자로 확인
+- 표시 데이터
+  - stability_score (0~100%)
+  - 최근 평균 대비 변화값
+
+### 패널 3: 좌우 밸런스
+- 목적: 좌우 불균형 여부 확인
+- 표시 데이터
+  - count_left
+  - count_right
+  - abs(count_left - count_right)
+
+### 패널 4: 측정 신뢰도/품질
+- 목적: 측정값을 얼마나 믿을 수 있는지 확인
+- 표시 데이터
+  - measurement_confidence
+  - measurement_quality
+
+### 패널 5: 자세 오류 요약
+- 목적: 어떤 자세 문제가 있었는지 간단히 안내
+- 표시 데이터
+  - posture_errors 목록
+  - 오류 개수
+
+### 패널 6: 전 세션 대비 개선도
+- 목적: "전보다 나아졌는지" 직관적으로 보여줌
+- 표시 데이터
+  - 이번 stability_score - 직전 stability_score
+  - 이번 posture_errors 개수 - 직전 posture_errors 개수
+
+### 패널 7: 최근 30일 진행 지표
+- 목적: 단기 누적 성과 확인
+- 표시 데이터
+  - sessionCount
+  - workoutCount
+  - totalReps
+  - totalDurationSec
+
+### 패널 8: 운동 종류별 누적 횟수
+- 목적: 어떤 운동을 많이 했는지 확인
+- 표시 데이터
+  - progress.workout_summary.byExercise
+
+### 패널 9: 기준 촬영 대비 변화
+- 목적: baseline 대비 바뀐 점을 확인
+- 표시 데이터
+  - baseline_diff (존재하는 키만 표시)
+
+### 패널 10: 코칭 한 줄 행동 가이드
+- 목적: 다음 세트에서 바로 실행할 행동 제시
+- 표시 데이터
+  - coaching.mirror_message
+  - coaching.pc2_payload.display_lines (상위 1~3개)
+
+---
+
+## 9) 추천 화면 배치 (간단형)
+
+복잡하지 않게 시작하려면 아래 6개만 먼저 배치하는 것을 추천합니다.
+
+1. 오늘 운동 요약
+2. 자세 안정도 점수
+3. 좌우 밸런스
+4. 전 세션 대비 개선도
+5. 자세 오류 요약
+6. 코칭 한 줄 행동 가이드
