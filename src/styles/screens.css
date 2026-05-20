@@ -532,8 +532,8 @@
 
 .mode-home-grid {
   min-height: 0;
-  height: 100%;
-  overflow: auto;
+  height: min(680px, calc(100vh - 13rem));
+  overflow: visible;
   display: grid;
   grid-template-columns: minmax(520px, 1.35fr) minmax(360px, 0.65fr);
   gap: 1rem;
@@ -568,7 +568,8 @@
 }
 
 .calendar-panel--mode {
-  min-height: min(680px, calc(100vh - 13rem));
+  height: 100%;
+  min-height: 0;
   align-self: stretch;
 }
 
@@ -582,13 +583,36 @@
 }
 
 .today-panel--mode {
-  min-height: min(680px, calc(100vh - 13rem));
+  height: 100%;
+  min-height: 0;
   align-self: stretch;
-  overflow: visible;
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(0, auto) minmax(0, 1fr) auto;
+  gap: 0.6rem;
 }
 
 .today-panel .footer-actions {
-  margin-top: auto;
+  margin-top: 0;
+}
+
+.today-panel--mode > h2,
+.today-panel--mode > p {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+}
+
+.today-panel--mode > h2 {
+  margin: 0;
+  -webkit-line-clamp: 2;
+}
+
+.today-panel--mode > p {
+  margin: 0;
+  -webkit-line-clamp: 2;
+  line-height: 1.4;
 }
 
 .metric-panel {
@@ -641,7 +665,10 @@
 }
 
 .calendar-strip--month {
-  grid-template-columns: repeat(7, minmax(86px, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-auto-rows: minmax(0, 1fr);
+  overflow: hidden;
+  align-content: stretch;
 }
 
 .calendar-strip--history {
@@ -665,6 +692,11 @@
   cursor: pointer;
 }
 
+.calendar-strip--month button {
+  min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
 .calendar-strip--history button {
   min-height: 92px;
 }
@@ -685,6 +717,12 @@
 
 .calendar-strip button span {
   -webkit-line-clamp: 2;
+}
+
+.calendar-strip--month button span {
+  align-self: start;
+  font-size: 0.92rem;
+  line-height: 1.32;
 }
 
 .calendar-strip button em {
@@ -806,10 +844,41 @@
 }
 
 .routine-list--today {
-  max-height: none;
-  overflow: visible;
+  max-height: 180px;
+  overflow: hidden;
   flex: initial;
   padding-right: 0;
+  margin: 0.55rem 0;
+}
+
+.routine-list--today article {
+  min-height: 0;
+  padding-top: 0.5rem;
+}
+
+.routine-list--today strong,
+.routine-list--today em,
+.routine-list--today small {
+  display: -webkit-box;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+}
+
+.routine-list--today strong {
+  -webkit-line-clamp: 1;
+}
+
+.routine-list--today em,
+.routine-list--today small {
+  -webkit-line-clamp: 1;
+}
+
+.routine-more-copy {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.88rem;
+  font-weight: 800;
 }
 
 .today-start-summary,
@@ -853,12 +922,14 @@
 
 .routine-reason-card {
   display: grid;
-  gap: 0.85rem;
+  gap: 0.6rem;
   border: 1px solid rgba(39, 226, 255, 0.28);
   border-radius: 8px;
   background: linear-gradient(135deg, rgba(39, 226, 255, 0.095), rgba(255, 255, 255, 0.035));
-  padding: 1rem;
-  margin: 0.75rem 0;
+  padding: 0.8rem;
+  margin: 0.45rem 0;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .routine-reason-card__head {
@@ -875,11 +946,16 @@
   margin: 0;
   color: var(--muted);
   line-height: 1.45;
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 1;
 }
 
 .routine-reason-grid {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.45rem;
+  min-height: 0;
 }
 
 .routine-reason-grid article {
@@ -887,9 +963,9 @@
   border: 1px solid rgba(255, 255, 255, 0.11);
   border-radius: 8px;
   background: rgba(0, 0, 0, 0.18);
-  padding: 0.72rem;
+  padding: 0.6rem;
   display: grid;
-  gap: 0.32rem;
+  gap: 0.26rem;
 }
 
 .routine-reason-grid article span {
@@ -921,42 +997,6 @@
   color: var(--muted);
   line-height: 1.4;
   -webkit-line-clamp: 2;
-}
-
-.today-weight-card {
-  display: grid;
-  gap: 0.75rem;
-  border: 1px solid rgba(39, 226, 255, 0.24);
-  border-radius: 8px;
-  background: rgba(39, 226, 255, 0.055);
-  padding: 1rem;
-  margin: 0.75rem 0 1rem;
-}
-
-.today-weight-card strong {
-  display: block;
-  color: var(--text);
-  font-size: 1.08rem;
-  margin: 0.18rem 0;
-}
-
-.today-weight-card p {
-  margin: 0;
-  color: var(--muted);
-}
-
-.today-weight-card.is-disabled {
-  opacity: 0.58;
-}
-
-.today-weight-card input:disabled {
-  color: var(--muted);
-}
-
-.weight-form {
-  display: grid;
-  grid-template-columns: 0.6fr 1fr auto;
-  gap: 0.55rem;
 }
 
 .metric-list,
@@ -1718,68 +1758,6 @@
   font-size: 1rem;
 }
 
-.result-detail-list {
-  display: grid;
-  gap: 0.85rem;
-}
-
-.result-detail-list > div {
-  border: 1px solid var(--line-soft);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.025);
-  padding: 0.65rem;
-  display: grid;
-  gap: 0.45rem;
-}
-
-.result-detail-list ul {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 0.35rem;
-}
-
-.result-detail-list li {
-  display: flex;
-  justify-content: space-between;
-  gap: 0.65rem;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
-  padding-bottom: 0.25rem;
-}
-
-.result-detail-list li:last-child {
-  border-bottom: 0;
-  padding-bottom: 0;
-}
-
-.result-detail-list li span,
-.result-detail-list p {
-  color: var(--muted);
-}
-
-.result-detail-list li strong {
-  color: var(--text);
-}
-
-.result-chip-list {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-}
-
-.result-chip-list span {
-  border: 1px solid var(--line-soft);
-  border-radius: 999px;
-  color: var(--mint);
-  background: rgba(255, 255, 255, 0.03);
-  padding: 0.2rem 0.5rem;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
 @media (max-width: 860px) {
   .mirror-shell {
     padding: 1rem;
@@ -1899,10 +1877,6 @@
   }
 
   .history-coaching-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .weight-form {
     grid-template-columns: 1fr;
   }
 

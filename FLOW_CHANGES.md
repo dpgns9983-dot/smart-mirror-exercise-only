@@ -1,5 +1,28 @@
 # Flow Changes
 
+## 결과화면 간소화 + 실호출 필드 검증 (Result/API)
+
+이번 변경은 결과 화면에서 불필요한 정보 노출을 제거하고, PC3 실서버 호출로 실제 수집 필드를 검증한 작업입니다.
+
+- Result 화면에서 아래 섹션/문구를 제거했습니다.
+  - 세션 결과 재조회 상태 문구
+  - 측정 품질 문구
+  - PC3 원문 문구
+  - 최근 코칭 로그 패널
+  - DETAILS( baseline/environment/evidence ) 패널
+- 결과 화면은 핵심 수치 중심으로 정리했습니다.
+  - 운동 횟수
+  - 좌/우 카운트
+  - 측정 신뢰도
+- `scripts/api_probe.mjs`로 PC3 실호출을 수행해 다음 API를 확인했습니다.
+  - `/api/users/profiles`
+  - `/api/users/{id}/progress`
+  - `/api/sessions/start`
+  - `/api/sessions/{session_id}/stop`
+  - `/api/sessions/{session_id}/result`
+  - `/api/coach/logs/{id}`
+- 위 6개 호출은 테스트 시점에 모두 200 응답을 반환했고, 자세/전후 비교에 필요한 핵심 필드 존재를 확인했습니다.
+
 ## 결과화면 상세 데이터 노출 + 수동 API 테스트 경로 추가 (Result/Data)
 
 이번 변경은 PC3 응답을 결과화면에서 더 많이 보여주고, 실제 운동 없이도 엔드포인트 호출로 검증할 수 있게 한 작업입니다.

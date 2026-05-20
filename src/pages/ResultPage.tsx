@@ -2,13 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import type { NavigateFunction } from "react-router-dom";
 
 import AppShell from "../components/AppShell";
-import { getCoachLogs, getProgress, getSessionResult } from "../services/api";
+import { getProgress, getSessionResult } from "../services/api";
 import { useAppState } from "../state/AppContext";
-import type { CoachLog, ProgressResponse, SessionFinalResponse } from "../types/domain";
+import type { ProgressResponse, SessionFinalResponse } from "../types/domain";
 import { formatDuration, formatExerciseName, formatWeightDelta, todayIso } from "../utils/format";
 import {
-  composeCoachLogBody,
-  composeCoachLogTitle,
   composeImprovementLines,
   composePositiveLine,
   resolveSafetyLevel,
@@ -33,23 +31,11 @@ function toNumber(value: unknown): number | null {
   return null;
 }
 
-function objectPairs(payload: Record<string, unknown> | undefined): Array<[string, string]> {
-  if (!payload) {
-    return [];
-  }
-  return Object.entries(payload)
-    .filter(([, value]) => ["string", "number", "boolean"].includes(typeof value))
-    .slice(0, 6)
-    .map(([key, value]) => [key, String(value)]);
-}
-
 export default function ResultPage({ navigate }: { navigate: NavigateFunction }) {
   const app = useAppState();
   const result = app.lastResult;
   const profile = app.activeProfile;
   const [progress, setProgress] = useState<ProgressResponse | null>(null);
-  const [coachLogs, setCoachLogs] = useState<CoachLog[]>([]);
-  const [resultStatus, setResultStatus] = useState<"idle" | "ok" | "failed">("idle");
   const [storedResult, setStoredResult] = useState<SessionFinalResponse | null>(null);
 
   const displayResult = storedResult ?? result;
@@ -64,9 +50,6 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   const measurementConfidencePercent = measurementConfidence == null ? null : Math.round(measurementConfidence * 100);
   const warnings = displayResult?.coaching?.warnings ?? [];
   const displayLines = displayResult?.coaching?.pc2_payload?.display_lines ?? [];
-  const evidence = displayResult?.coaching?.pc2_payload?.evidence ?? [];
-  const baselinePairs = objectPairs(displayResult?.baseline_diff);
-  const environmentPairs = objectPairs(displayResult?.environment);
   const message = displayResult?.coaching?.mirror_message ?? displayResult?.coaching?.summary ?? "운동 결과를 정리했습니다.";
 
   // 안전 레벨 결정
@@ -87,7 +70,6 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
     }
     let alive = true;
     void getProgress(profile.id, 30).then((data) => alive && setProgress(data)).catch(() => alive && setProgress(null));
-    void getCoachLogs(profile.id, 5).then((data) => alive && setCoachLogs(data)).catch(() => alive && setCoachLogs([]));
     return () => {
       alive = false;
     };
@@ -98,15 +80,15 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
       return;
     }
     let alive = true;
-    setResultStatus("idle");
     void getSessionResult(result.session_id)
       .then((stored) => {
         if (alive) {
           setStoredResult(stored);
-          setResultStatus("ok");
         }
       })
-      .catch(() => alive && setResultStatus("failed"));
+      .catch(() => {
+        // 저장 결과 재조회 실패 시 직전 메모리 결과를 그대로 사용한다.
+      });
     return () => {
       alive = false;
     };
@@ -178,8 +160,6 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
               <strong>{measurementConfidencePercent == null ? "-" : `${measurementConfidencePercent}%`}</strong>
             </div>
           </div>
-          <em>세션 결과 재조회: {resultStatus === "ok" ? "완료" : resultStatus === "failed" ? "실패" : "확인 중"}</em>
-          <em>측정 품질: {measurementQuality}</em>
         </section>
 
         <section className="panel">
@@ -194,9 +174,6 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
               </ul>
             </>
           ) : null}
-          {displayResult?.coaching?.summary && (
-            <p style={{ marginTop: "1em", fontSize: "0.8em", opacity: 0.6, fontStyle: "italic" }}>PC3 원문: {displayResult.coaching.summary}</p>
-          )}
         </section>
 
         <section className="panel">
@@ -212,71 +189,6 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
           </div>
         </section>
 
-        <section className="panel">
-          <span className="eyebrow">COACH LOGS</span>
-          <h2>최근 코칭 로그</h2>
-          {coachLogs.map((log) => {
-            const body = composeCoachLogBody(log);
-            return (
-              <article key={`${log.id ?? log.requestId ?? log.createdAt}`}>
-                <strong>{composeCoachLogTitle(log)}</strong>
-                {body && <span style={{ fontSize: "0.85em", opacity: 0.7 }}>{body}</span>}
-              </article>
-            );
-          })}
-        </section>
-
-        <section className="panel">
-          <span className="eyebrow">DETAILS</span>
-          <h2>추가 수집 데이터</h2>
-          <div className="result-detail-list">
-            <div>
-              <strong>Baseline Diff</strong>
-              {baselinePairs.length ? (
-                <ul>
-                  {baselinePairs.map(([key, value]) => (
-                    <li key={`baseline-${key}`}>
-                      <span>{key}</span>
-                      <strong>{value}</strong>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>표시할 기준 비교 값이 없습니다.</p>
-              )}
-            </div>
-
-            <div>
-              <strong>Environment</strong>
-              {environmentPairs.length ? (
-                <ul>
-                  {environmentPairs.map(([key, value]) => (
-                    <li key={`env-${key}`}>
-                      <span>{key}</span>
-                      <strong>{value}</strong>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p>표시할 환경 값이 없습니다.</p>
-              )}
-            </div>
-
-            <div>
-              <strong>Evidence</strong>
-              {evidence.length ? (
-                <div className="result-chip-list">
-                  {evidence.slice(0, 8).map((item, index) => {
-                    const label = item.title ?? item.source_title ?? item.exercise_label ?? item.category_label ?? item.source ?? `evidence_${index + 1}`;
-                    return <span key={`${label}-${index}`}>{label}</span>;
-                  })}
-                </div>
-              ) : (
-                <p>코칭 근거 데이터가 없습니다.</p>
-              )}
-            </div>
-          </div>
-        </section>
       </div>
     </AppShell>
   );
