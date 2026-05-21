@@ -67,6 +67,8 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
   const frameTimerRef = useRef<number | null>(null);
   const frameInFlightRef = useRef(false);
   const pendingSkippedRef = useRef(false);
+  const expectedCloseRef = useRef(false);
+  const phaseRef = useRef<Phase>("idle");
 
   const targetCount = currentExercise?.reps ?? null;
   const progress = targetCount ? Math.min(100, Math.round((count / targetCount) * 100)) : 0;
@@ -78,7 +80,10 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
     ? `${currentExercise.sets ?? 1}세트 · ${formatExerciseTarget(currentExercise.reps, currentExercise.durationSec)}`
     : "";
 
-  const stopLoop = () => {
+  const stopLoop = (expectedClose = false) => {
+    if (expectedClose) {
+      expectedCloseRef.current = true;
+    }
     if (frameTimerRef.current !== null) {
       window.clearInterval(frameTimerRef.current);
       frameTimerRef.current = null;
@@ -94,6 +99,10 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
       camera.stop();
     };
   }, [camera.start, camera.stop]);
+
+  useEffect(() => {
+    phaseRef.current = phase;
+  }, [phase]);
 
   useEffect(() => {
     if (phase !== "rest") {
@@ -152,6 +161,7 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
     setStability(null);
     setPostureErrors([]);
     setCoachingResult(null);
+    expectedCloseRef.current = false;
     try {
       const session = await startSession(profile.id, currentExercise.exercise, run.routine.routineId, run.day.routineDayId);
       sessionIdRef.current = session.session_id;
@@ -167,7 +177,11 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
         }
       };
       ws.onclose = () => {
-        if (sessionIdRef.current) {
+        if (expectedCloseRef.current) {
+          expectedCloseRef.current = false;
+          return;
+        }
+        if (sessionIdRef.current && phaseRef.current === "running") {
           setError("운동 세션 연결이 끊어졌습니다. 결과 받기를 다시 시도해주세요.");
           setPhase("pending_result");
         }
@@ -192,7 +206,9 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
     }
     pendingSkippedRef.current = skipped;
     setPhase(skipped ? "skipping" : "stopping");
-    stopLoop();
+    setError(null);
+    setFeedback(skipped ? "건너뛰기를 기록하고 있습니다." : "결과를 정리하고 있습니다.");
+    stopLoop(true);
     try {
       const result = skipped ? await skipSession(sessionId, "user_skipped") : await stopSession(sessionId);
       sessionIdRef.current = null;
@@ -265,7 +281,7 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
       <BackButton
         fallbackTo="/mode"
         onBeforeBack={() => {
-          stopLoop();
+          stopLoop(true);
           camera.stop();
         }}
       />

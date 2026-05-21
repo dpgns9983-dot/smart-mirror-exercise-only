@@ -23,6 +23,7 @@ import type {
   WorkoutResult,
 } from "../types/domain";
 import { todayIso } from "../utils/format";
+import { fetch as tauriFetch } from "@tauri-apps/plugin-http";
 
 const API_BASE_URL = String(import.meta.env.VITE_PC3_URL ?? "http://127.0.0.1:9000").replace(
   /\/$/,
@@ -34,6 +35,14 @@ const EXPERIENCES: ExperienceLevel[] = ["beginner", "casual", "consistent"];
 const FREQUENCIES: WeeklyFrequency[] = ["once_twice", "three_four", "five_plus"];
 const LIMITATIONS: Limitation[] = ["knee", "back", "shoulder", "ankle"];
 const EXERCISES: ExerciseType[] = ["squat", "jumping_jack", "knee_raise", "lunge", "pushup"];
+
+function isTauriRuntime(): boolean {
+  return typeof window !== "undefined" && "__TAURI_INTERNALS__" in window;
+}
+
+function pc3Fetch(input: string, init?: RequestInit): Promise<Response> {
+  return isTauriRuntime() ? tauriFetch(input, init) : fetch(input, init);
+}
 
 type Pc3Profile = {
   id?: string;
@@ -63,7 +72,7 @@ export class ApiError extends Error {
 async function request<T>(path: string, init?: RequestInit, message = "요청을 처리하지 못했습니다. 다시 시도해주세요."): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${API_BASE_URL}${path}`, init);
+    response = await pc3Fetch(`${API_BASE_URL}${path}`, init);
   } catch {
     throw new ApiError("서버에 연결하지 못했습니다. 연결 상태를 확인하고 다시 시도해주세요.", null);
   }

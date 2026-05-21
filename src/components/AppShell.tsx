@@ -14,6 +14,10 @@ type AppShellProps = {
   backFallbackTo?: string;
 };
 
+function hasKorean(value: string): boolean {
+  return /[ㄱ-ㅎㅏ-ㅣ가-힣]/.test(value);
+}
+
 export default function AppShell({ step, title, subtitle, children, footer, className = "", showBack = true, backFallbackTo }: AppShellProps) {
   return (
     <main className={`mirror-shell ${className}`}>
@@ -22,7 +26,7 @@ export default function AppShell({ step, title, subtitle, children, footer, clas
       <header className="mirror-shell__header">
         <div>
           {step ? <span className="eyebrow">{step}</span> : null}
-          <h1>{title}</h1>
+          <h1 className={hasKorean(title) ? "optical-ko-title" : undefined}>{title}</h1>
           {subtitle ? <p>{subtitle}</p> : null}
         </div>
       </header>

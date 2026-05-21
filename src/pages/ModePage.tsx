@@ -375,7 +375,7 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
   };
 
   return (
-    <AppShell title="루틴" step="4단계">
+    <AppShell title="루틴" step="4단계" backFallbackTo="/profile-select">
       {error ? (
         <div className="inline-alert inline-alert--error">
           <span>{error}</span>

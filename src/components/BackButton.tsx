@@ -4,25 +4,20 @@ type BackButtonProps = {
   fallbackTo?: string;
   label?: string;
   className?: string;
+  onBack?: () => void;
   onBeforeBack?: () => void;
 };
 
-export default function BackButton({ fallbackTo, label = "이전", className = "", onBeforeBack }: BackButtonProps) {
+export default function BackButton({ fallbackTo, label = "이전", className = "", onBack, onBeforeBack }: BackButtonProps) {
   const navigate = useNavigate();
 
   const goBack = () => {
     onBeforeBack?.();
-    const historyIndex = typeof window !== "undefined" ? window.history.state?.idx : null;
-    const canUseBrowserBack =
-      typeof historyIndex === "number"
-        ? historyIndex > 0
-        : typeof window !== "undefined" && window.history.length > 1;
-
-    if (canUseBrowserBack) {
-      navigate(-1);
+    if (onBack) {
+      onBack();
       return;
     }
-    navigate(fallbackTo ?? "/profile-select");
+    navigate(fallbackTo ?? "/profile-select", { replace: true });
   };
 
   return (

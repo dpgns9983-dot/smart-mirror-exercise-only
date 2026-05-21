@@ -251,7 +251,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   }, [profile, result?.session_id]);
 
   useEffect(() => {
-    if (!result?.session_id || result.session_id.startsWith("demo")) {
+    if (!result?.session_id) {
       return;
     }
     let alive = true;
@@ -290,8 +290,8 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
 
   if (!result) {
     return (
-      <AppShell title="결과" subtitle="표시할 결과가 없습니다.">
-        <button type="button" className="button button--primary" onClick={() => navigate("/mode")}>
+      <AppShell title="결과" subtitle="표시할 결과가 없습니다." backFallbackTo="/mode">
+        <button type="button" className="button button--primary" onClick={() => navigate("/mode", { replace: true })}>
           루틴으로
         </button>
       </AppShell>
@@ -303,16 +303,17 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
       title="결과"
       step="6단계"
       subtitle="코칭과 핵심 기록을 먼저 확인하세요."
+      backFallbackTo="/mode"
       footer={
         <div className="footer-actions">
-          <button type="button" className="button button--ghost" onClick={() => navigate("/mode")}>
+          <button type="button" className="button button--ghost" onClick={() => navigate("/mode", { replace: true })}>
             루틴으로
           </button>
           {result.session_id ? (
             <button
               type="button"
               className="button button--ghost"
-              onClick={() => navigate(`/history?date=${encodeURIComponent(resultDate)}&session_id=${encodeURIComponent(result.session_id)}`)}
+              onClick={() => navigate(`/history?date=${encodeURIComponent(resultDate)}&session_id=${encodeURIComponent(result.session_id)}`, { replace: true })}
             >
               기록에서 보기
             </button>
@@ -323,7 +324,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
             onClick={() => {
               app.resetWorkout();
               app.setActiveProfileId(null);
-              navigate("/profile-select");
+              navigate("/profile-select", { replace: true });
             }}
           >
             프로필로

@@ -255,7 +255,7 @@ export default function ProfileSelectPage({ navigate }: { navigate: NavigateFunc
 
       <header className="profile-carousel-hero">
         <span className="eyebrow">SMART MIRROR</span>
-        <h1>프로필 선택</h1>
+        <h1 className="optical-ko-title">프로필 선택</h1>
       </header>
 
       <section className="profile-carousel-stage" aria-label="프로필 선택">

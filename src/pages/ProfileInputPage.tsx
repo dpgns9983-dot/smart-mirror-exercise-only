@@ -34,7 +34,7 @@ export default function ProfileInputPage({ navigate }: { navigate: NavigateFunct
         <WindowControls />
         <section className="profile-wizard-card profile-wizard-card--compact">
           <span className="eyebrow">PROFILE SETUP</span>
-          <h1>프로필을 먼저 선택해주세요.</h1>
+          <h1 className="optical-ko-title">프로필을 먼저 선택해주세요.</h1>
           <p>기본정보를 저장하려면 PC3 프로필이 먼저 필요합니다.</p>
           <button type="button" className="button button--primary" onClick={() => navigate("/profile-select")}>
             프로필 선택
@@ -48,6 +48,14 @@ export default function ProfileInputPage({ navigate }: { navigate: NavigateFunct
   const historyValid = experienceLevel !== null && weeklyFrequency !== null;
   const currentValid = step === 1 ? basicValid : step === 2 ? historyValid : true;
   const meta = STEP_META[step - 1];
+
+  const goBack = () => {
+    if (step > 1) {
+      setStep((value) => value - 1);
+      return;
+    }
+    navigate("/profile-select", { replace: true });
+  };
 
   const toggleLimitation = (value: Limitation) => {
     setLimitations((current) => (current.includes(value) ? current.filter((item) => item !== value) : [...current, value]));
@@ -94,7 +102,7 @@ export default function ProfileInputPage({ navigate }: { navigate: NavigateFunct
 
   return (
     <main className="profile-wizard-page">
-      <BackButton fallbackTo="/profile-select" />
+      <BackButton fallbackTo="/profile-select" onBack={goBack} />
       <WindowControls />
 
       <section className="profile-wizard-card">
@@ -105,7 +113,7 @@ export default function ProfileInputPage({ navigate }: { navigate: NavigateFunct
             ))}
           </div>
           <span className="eyebrow">{meta.eyebrow}</span>
-          <h1>{meta.title}</h1>
+          <h1 className="optical-ko-title">{meta.title}</h1>
           <p>{profile.name}님의 {meta.description}</p>
         </header>
 
@@ -181,7 +189,7 @@ export default function ProfileInputPage({ navigate }: { navigate: NavigateFunct
         </div>
 
         <footer className="wizard-actions">
-          <button type="button" className="button button--ghost" onClick={() => (step > 1 ? setStep((value) => value - 1) : navigate("/profile-select"))}>
+          <button type="button" className="button button--ghost" onClick={goBack}>
             {step > 1 ? "이전" : "프로필 선택"}
           </button>
           <button type="button" className="button button--primary" onClick={goNext} disabled={!currentValid || saving}>

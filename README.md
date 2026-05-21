@@ -1,93 +1,105 @@
 # PC1 Smart Mirror UI
 
-PC1 is the smart mirror screen app. It owns profile UI, camera capture, workout home, workout session, result, and coaching display.
+PC1은 스마트 미러 화면 앱입니다. 프로필 선택, 기준 촬영, 루틴 확인, 운동 진행, 결과 리포트 화면을 담당하고 운동 분석과 코칭 데이터는 PC3에서 받습니다.
 
-Runtime connection is fixed:
+## 연결 구조
 
 ```text
-PC1 UI -> PC3 Vision Gateway -> PC2 NVIDIA/RAG Engine
+PC1 UI / Camera -> PC3 Vision Gateway -> PC2 RAG Coaching
 ```
 
-PC1 calls only PC3. PC1 does not call PC2, NVIDIA APIs, or databases directly.
+- PC1: Tauri/React 화면, 카메라 프레임 업로드, 사용자 흐름
+- PC3: 프로필, 루틴, 세션, 자세 분석 API 중계
+- PC2: RAG 기반 코칭 생성
 
-## Installer Build
+PC1은 PC3 API만 호출합니다. PC2는 PC3 뒤에서 연결됩니다.
 
-Before building an installer for another computer, set the PC3 address in `.env`.
+## 환경값
+
+`.env` 또는 `.env.local`에 PC3 주소를 둡니다.
 
 ```env
-VITE_PC3_URL=http://<PC3_LAN_IP>:9000
+VITE_PC3_URL=http://192.168.219.44:9000
 VITE_DEVICE_ID=mirror_001
 ```
 
-For local development with PC1, PC2, and PC3 on the same machine:
+## 개발 실행
 
-```env
-VITE_PC3_URL=http://127.0.0.1:9000
-VITE_DEVICE_ID=mirror_001
-```
-
-Run this file from the repository root:
-
-```text
-Build-PC1-Installer.cmd
-```
-
-The installer is copied to the repository root:
-
-```text
-SmartMirror-PC1-Setup.exe
-```
-
-Important: the Tauri installer embeds `VITE_PC3_URL` at build time. If the PC3 IP changes, update `.env` and rebuild the installer.
-
-## Development
-
-```powershell
+```bash
 npm install
 npm run tauri -- dev
 ```
 
-Build check:
+개발 실행은 코드를 수정하면서 바로 확인할 때 사용합니다. 앱 창이 뜨고, PC3 주소는 `.env`의 `VITE_PC3_URL`을 사용합니다.
 
-```powershell
+## PC3 연결 확인
+
+```bash
+node scripts/api_probe.mjs
+```
+
+기본 PC3 주소는 `.env`의 `VITE_PC3_URL`을 기준으로 확인합니다.
+
+## 빌드
+
+```bash
 npm run build
 ```
 
-## Contract Rules
+React/Vite 화면 빌드만 확인할 때 사용합니다. 실제 설치 exe가 필요하면 Tauri 빌드를 실행합니다.
 
-- API base uses only `VITE_PC3_URL`.
-- PC1 must not add any direct PC2, NVIDIA, or database connection.
-- Profile source of truth is PC3: `GET/POST/PUT/DELETE /api/users/profiles`.
-- Do not restore profile source data from legacy local caches; localStorage may only cache the last selected profile ID.
-- Profile enums must use only PC3 contract values.
-- Empty limitations must be sent as `[]`, not as a string.
-- Baseline slots are only `face_front` and `body_front_full`.
-- Starting a workout from today's routine sends `routine_id` and `routine_day_id` to `/api/sessions/start`.
-- PC1 connects to the `ws_url` returned by `/api/sessions/start`.
-- PC1 uploads exercise frames to `/api/analyze/exercise` while the session is running.
-- PC1 displays PC3 response fields such as `pc2_payload.display_lines`, `pc2_payload.evidence`, routine evidence, coaching evidence, and `weekly_adjustment` without reinterpreting them.
+```bash
+npm run tauri -- build
+```
 
-## PC3 APIs Used By PC1
+Tauri 빌드가 끝나면 설치 파일은 보통 아래 폴더에 생성됩니다.
 
-- `GET /api/users/profiles`
-- `POST /api/users/profiles`
-- `PUT /api/users/profiles/{user_id}`
-- `DELETE /api/users/profiles/{user_id}`
-- `GET /api/baselines/users/{user_id}`
-- `POST /api/baselines/users/{user_id}/capture`
-- `POST /api/routines/profile`
-- `GET /api/routines/profile/{user_id}/day?target_date=YYYY-MM-DD`
-- `GET /api/routines/profile/{user_id}/calendar?from_date=YYYY-MM-DD&to_date=YYYY-MM-DD`
-- `POST /api/users/{user_id}/body-metrics`
-- `GET /api/users/{user_id}/progress?days=30`
-- `GET /api/coach/logs/{user_id}?limit=100`
-- `POST /api/sessions/start`
-- `POST /api/analyze/exercise`
-- `POST /api/sessions/{session_id}/stop`
-- `POST /api/sessions/{session_id}/skip`
-- `GET /api/sessions/{session_id}/result`
-- `WS /ws/sessions/{session_id}`
+```text
+src-tauri\target\release\bundle\nsis
+```
 
-## Camera
+## 바탕화면 설치 파일 만들기
 
-PC1 uses the default webcam recognized by Windows. If the camera does not open, check Windows camera permissions, whether another app is using the camera, and then restart PC1.
+가장 쉬운 방법은 아래 스크립트를 실행하는 것입니다.
+
+```bat
+Build-PC1-Installer.cmd
+```
+
+스크립트는 Tauri 빌드를 실행하고, 생성된 설치 파일을 프로젝트 폴더의 `SmartMirror-PC1-Setup.exe`로 복사합니다.
+
+바탕화면에 바로 복사하려면 PowerShell에서 아래 명령을 사용합니다.
+
+```powershell
+$installer = Get-ChildItem ".\src-tauri\target\release\bundle\nsis\*.exe" |
+  Sort-Object LastWriteTime -Descending |
+  Select-Object -First 1
+
+Copy-Item $installer.FullName "$env:USERPROFILE\Desktop\SmartMirror-PC1-Setup.exe" -Force
+```
+
+프로젝트 폴더에 만들어진 설치 파일을 바탕화면으로 복사할 때는 아래처럼 해도 됩니다.
+
+```powershell
+Copy-Item ".\SmartMirror-PC1-Setup.exe" "$env:USERPROFILE\Desktop\SmartMirror-PC1-Setup.exe" -Force
+```
+
+## 설치 앱 실행
+
+바탕화면의 설치 파일을 실행해서 설치합니다.
+
+```text
+C:\Users\Admin\Desktop\SmartMirror-PC1-Setup.exe
+```
+
+설치 후 실제 실행 파일 위치는 보통 아래 경로입니다.
+
+```text
+C:\Users\Admin\AppData\Local\Smart Mirror\pc1-smart-mirror.exe
+```
+
+PowerShell에서 바로 실행할 때는 아래 명령을 사용할 수 있습니다.
+
+```powershell
+Start-Process "$env:LOCALAPPDATA\Smart Mirror\pc1-smart-mirror.exe"
+```
