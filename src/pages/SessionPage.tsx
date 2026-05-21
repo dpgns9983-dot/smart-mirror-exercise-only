@@ -3,7 +3,7 @@ import type { NavigateFunction } from "react-router-dom";
 
 import BackButton from "../components/BackButton";
 import RestTimer from "../components/RestTimer";
-import { isTemporaryOfflinePc3Enabled, skipSession, startSession, stopSession, uploadFrame } from "../services/api";
+import { skipSession, startSession, stopSession, uploadFrame } from "../services/api";
 import { useCamera } from "../hooks/useCamera";
 import { useAppState } from "../state/AppContext";
 import type { ExerciseUpdate, SessionFinalResponse } from "../types/domain";
@@ -52,7 +52,6 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
   const profile = app.activeProfile;
   const currentExercise = run?.day.exercises[run.currentIndex] ?? null;
   const nextExercise = run?.day.exercises[(run.currentIndex ?? 0) + 1] ?? null;
-  const allowOfflineBypass = isTemporaryOfflinePc3Enabled();
   const [phase, setPhase] = useState<Phase>("idle");
   const [count, setCount] = useState(0);
   const [countLeft, setCountLeft] = useState<number | null>(null);
@@ -141,7 +140,7 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
   };
 
   const begin = async () => {
-    if (!profile || !run || !currentExercise || (!allowOfflineBypass && camera.status !== "ready") || phase !== "idle") {
+    if (!profile || !run || !currentExercise || camera.status !== "ready" || phase !== "idle") {
       return;
     }
     setPhase("starting");
@@ -156,16 +155,6 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
     try {
       const session = await startSession(profile.id, currentExercise.exercise, run.routine.routineId, run.day.routineDayId);
       sessionIdRef.current = session.session_id;
-      if (!session.ws_url) {
-        setPhase("running");
-        setTargetStatus("tracking");
-        setFeedback("Offline PC3 bypass is active.");
-        setStability(0.86);
-        frameTimerRef.current = window.setInterval(() => {
-          setCount((value) => Math.min(currentExercise.reps ?? 5, value + 1));
-        }, 800);
-        return;
-      }
       const ws = new WebSocket(session.ws_url);
       wsRef.current = ws;
       ws.onopen = () => setPhase("running");
@@ -290,60 +279,28 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
         </div>
       ) : null}
 
-      <aside className="session-panel-left">
-        <section className="session-hud session-hud--top">
-          <div>
-            <span>운동 {(run?.currentIndex ?? 0) + 1} / {run?.day.exercises.length ?? 1}</span>
-            <strong>{exerciseTitle}</strong>
-            <em>{exerciseDetail}</em>
-          </div>
-          <div className={`target-badge ${targetFrozen ? "is-warning" : ""}`}>{formatTargetStatus(targetStatus)}</div>
-        </section>
-        {error ? <aside className="session-alert" role="alert">{error}</aside> : null}
-        <p className="session-feedback">{feedback}</p>
-      </aside>
-
-      <aside className="session-panel-right">
-        <section className="count-orb">
-          <span>{progress}%</span>
-          <strong>{count}</strong>
-          {countLeft !== null || countRight !== null ? <em>좌 {countLeft ?? "-"} / 우 {countRight ?? "-"}</em> : null}
-        </section>
-
-        <aside className="session-stats">
-          <span>안정도</span>
-          <strong>{stability === null ? "-" : `${Math.round(stability * 100)}%`}</strong>
-          {postureErrors.slice(0, 2).map((item) => <em key={item}>{formatPostureError(item)}</em>)}
-        </aside>
-
-        <div className="session-actions">
-          {phase === "idle" ? (
-            <>
-              <button type="button" className="button button--ghost" onClick={() => navigate("/mode")}>
-                루틴으로
-              </button>
-              <button type="button" className="button button--primary" onClick={() => void begin()} disabled={!allowOfflineBypass && camera.status !== "ready"}>
-                시작
-              </button>
-            </>
-          ) : null}
-          {phase === "running" ? (
-            <>
-              <button type="button" className="button button--ghost" onClick={() => void finish(true)}>
-                건너뛰기
-              </button>
-              <button type="button" className="button button--primary" onClick={() => void finish(false)}>
-                결과 받기
-              </button>
-            </>
-          ) : null}
-          {phase === "pending_result" ? (
-            <button type="button" className="button button--primary" onClick={() => void finish(pendingSkippedRef.current)}>
-              결과 받기 재시도
-            </button>
-          ) : null}
-          {phase === "starting" || phase === "stopping" || phase === "skipping" ? <button type="button" className="button button--primary" disabled>처리 중</button> : null}
+      <section className="session-hud session-hud--top">
+        <div>
+          <span>운동 {(run?.currentIndex ?? 0) + 1} / {run?.day.exercises.length ?? 1}</span>
+          <strong>{exerciseTitle}</strong>
+          <em>{exerciseDetail}</em>
         </div>
+        <div className={`target-badge ${targetFrozen ? "is-warning" : ""}`}>{formatTargetStatus(targetStatus)}</div>
+      </section>
+
+      <section className="count-orb">
+        <span>{progress}%</span>
+        <strong>{count}</strong>
+        {countLeft !== null || countRight !== null ? <em>좌 {countLeft ?? "-"} / 우 {countRight ?? "-"}</em> : null}
+      </section>
+
+      {error ? <aside className="session-alert" role="alert">{error}</aside> : null}
+      <p className="session-feedback">{feedback}</p>
+
+      <aside className="session-stats">
+        <span>안정도</span>
+        <strong>{stability === null ? "-" : `${Math.round(stability * 100)}%`}</strong>
+        {postureErrors.slice(0, 2).map((item) => <em key={item}>{formatPostureError(item)}</em>)}
       </aside>
 
       {phase === "coaching" ? (
@@ -363,6 +320,35 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
           </section>
         </div>
       ) : null}
+
+      <div className="session-actions">
+        {phase === "idle" ? (
+          <>
+            <button type="button" className="button button--ghost" onClick={() => navigate("/mode")}>
+              루틴으로
+            </button>
+            <button type="button" className="button button--primary" onClick={() => void begin()} disabled={camera.status !== "ready"}>
+              시작
+            </button>
+          </>
+        ) : null}
+        {phase === "running" ? (
+          <>
+            <button type="button" className="button button--ghost" onClick={() => void finish(true)}>
+              건너뛰기
+            </button>
+            <button type="button" className="button button--primary" onClick={() => void finish(false)}>
+              결과 받기
+            </button>
+          </>
+        ) : null}
+        {phase === "pending_result" ? (
+          <button type="button" className="button button--primary" onClick={() => void finish(pendingSkippedRef.current)}>
+            결과 받기 재시도
+          </button>
+        ) : null}
+        {phase === "starting" || phase === "stopping" || phase === "skipping" ? <button type="button" className="button button--primary" disabled>처리 중</button> : null}
+      </div>
     </main>
   );
 }
