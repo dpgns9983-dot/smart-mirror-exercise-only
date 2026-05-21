@@ -1,5 +1,19 @@
 # Flow Changes
 
+## 결과화면 운동 카드 갯수별 동적 레이아웃 적용
+
+- `ResultPage` 렌더링 시 `exerciseSummaries.length`를 `data-count` 속성으로 DOM에 전달합니다.
+- CSS `[data-count]` 속성 선택자로 열 수·카드 높이를 갯수별로 분기합니다.
+- 외부 컨테이너(`result-exercise-section`, `.panel`) 크기는 변경하지 않습니다.
+- 상세 분석 카드 제목 텍스트만 수정 (로직·구조 변경 없음).
+
+## 임시 UI 버튼 제거 (Demo finished)
+
+- 임시 UI 버튼(데모 데이터 자동 진행 기능)을 제거했습니다.
+- 제거 범위: `App.tsx`의 tempButtonNext 함수, 버튼 JSX, 불필요한 import.
+- `layout.css`의 `.temp-quick-button` 스타일도 함께 제거했습니다.
+- 화면 흐름, API, 상태 로직은 변경하지 않았습니다.
+
 ## 임시 버튼 데모 자동 진행 기능 추가 (Demo only)
 
 이번 변경은 임시 버튼을 "API 연결 없이 화면 흐름을 테스트"하는 용도로 확장한 작업입니다.
