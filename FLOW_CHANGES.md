@@ -1,5 +1,13 @@
 # Flow Changes
 
+## 운동·휴식 화면 좌우 분할 레이아웃 (60/40)
+
+- `SessionPage`: `session-left`(60%) / `session-right`(40%) flex-row 구조로 JSX 재배치.
+- `RestTimer`: `rest-left`(60%) / `rest-right`(40%) flex-row 구조로 JSX 재배치.
+- HUD 요소(`session-hud`, `count-orb`, `session-feedback`, `session-stats`, `session-actions`)를 `session-right` 정상 흐름으로 이동, `position: absolute` 제거.
+- `overlay-panel`(코칭)은 `session-page` 직계 자식으로 `position: absolute; inset: 0` 유지 → 전체화면 오버레이 동작 보장.
+- `back-button`은 `position: fixed`이므로 JSX 변경 없이 카메라 영역 위에 유지.
+
 ## 결과화면 운동 카드 갯수별 동적 레이아웃 적용
 
 - `ResultPage` 렌더링 시 `exerciseSummaries.length`를 `data-count` 속성으로 DOM에 전달합니다.
