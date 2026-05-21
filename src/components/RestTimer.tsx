@@ -33,13 +33,13 @@ export default function RestTimer({ seconds, completedExercise, nextExercise, ne
   return (
     <main className="rest-page">
       <BackButton fallbackTo="/mode" />
-      <div className="rest-left">
-        {videoRef ? <video ref={videoRef} className="rest-video" autoPlay muted playsInline /> : null}
-      </div>
-      <div className="rest-right">
+      {videoRef ? <video ref={videoRef} className="rest-video" autoPlay muted playsInline /> : null}
+      <div className="rest-panel-left">
         <span className="eyebrow">REST</span>
         <h1>운동 사이 휴식</h1>
         <p>방금 완료: {completedExercise}</p>
+      </div>
+      <div className="rest-panel-right">
         <div className="rest-ring" aria-label={`남은 휴식 ${remaining}초`}>
           <svg viewBox="0 0 120 120" aria-hidden="true">
             <circle cx="60" cy="60" r="52" className="rest-ring__base" />

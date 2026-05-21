@@ -280,19 +280,17 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
           camera.stop();
         }}
       />
-      <div className="session-left">
-        <video ref={camera.videoRef} className="session-video" autoPlay muted playsInline />
-        {camera.status !== "ready" ? (
-          <div className="camera-placeholder">
-            <p>{camera.error ?? "카메라를 준비하고 있습니다."}</p>
-            <button type="button" className="button button--primary" onClick={() => void camera.start()}>
-              카메라 연결
-            </button>
-          </div>
-        ) : null}
-      </div>
+      <video ref={camera.videoRef} className="session-video" autoPlay muted playsInline />
+      {camera.status !== "ready" ? (
+        <div className="camera-placeholder">
+          <p>{camera.error ?? "카메라를 준비하고 있습니다."}</p>
+          <button type="button" className="button button--primary" onClick={() => void camera.start()}>
+            카메라 연결
+          </button>
+        </div>
+      ) : null}
 
-      <aside className="session-right">
+      <aside className="session-panel-left">
         <section className="session-hud session-hud--top">
           <div>
             <span>운동 {(run?.currentIndex ?? 0) + 1} / {run?.day.exercises.length ?? 1}</span>
@@ -301,15 +299,16 @@ export default function SessionPage({ navigate }: { navigate: NavigateFunction }
           </div>
           <div className={`target-badge ${targetFrozen ? "is-warning" : ""}`}>{formatTargetStatus(targetStatus)}</div>
         </section>
+        {error ? <aside className="session-alert" role="alert">{error}</aside> : null}
+        <p className="session-feedback">{feedback}</p>
+      </aside>
 
+      <aside className="session-panel-right">
         <section className="count-orb">
           <span>{progress}%</span>
           <strong>{count}</strong>
           {countLeft !== null || countRight !== null ? <em>좌 {countLeft ?? "-"} / 우 {countRight ?? "-"}</em> : null}
         </section>
-
-        {error ? <aside className="session-alert" role="alert">{error}</aside> : null}
-        <p className="session-feedback">{feedback}</p>
 
         <aside className="session-stats">
           <span>안정도</span>

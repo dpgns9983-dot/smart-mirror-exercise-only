@@ -1,5 +1,14 @@
 # Flow Changes
 
+## 운동·휴식 화면 양측 플로팅 패널 (ProfileInputPage 동일 방식)
+
+- `SessionPage`: `session-panel-left`(좌/40%) + `session-panel-right`(우/40%) `position: absolute` 패널.
+- `RestTimer`: `rest-panel-left`(좌/38%) + `rest-panel-right`(우/38%) 동일 패턴.
+- 패널 배경: 바깥쪽 `rgba(2,6,8,0.92)` → 중앙 방향 `transparent` 선형 그라디언트.
+- 카메라 비디오 `position: absolute; inset: 0` 전체화면 배경으로 복원.
+- `camera-placeholder` z-index 5 → 8 상향 (패널 z-index 7보다 위).
+- `overlay-panel`(코칭) 전체화면 오버레이 유지.
+
 ## 운동·휴식 화면 좌우 분할 레이아웃 (60/40)
 
 - `SessionPage`: `session-left`(60%) / `session-right`(40%) flex-row 구조로 JSX 재배치.
