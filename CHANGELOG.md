@@ -13,7 +13,7 @@
 ## [0.1.0] - 2026-05-22
 
 발표 직후 포트폴리오용으로 저장소를 정리한 첫 공개 버전입니다.
-초기 커밋부터 정리 커밋까지 총 28개의 커밋이 누적되었습니다.
+약 4주(2026-04-27 ~ 05-22) 동안 초기 커밋부터 정리 커밋까지 총 30개의 커밋이 누적되었습니다.
 
 ### Added (추가)
 
@@ -159,10 +159,13 @@
 ## 개발 히스토리 (커밋 단위, 시간순)
 
 > "체인지 로그는 길어야 한다" 는 요청에 따라, 모든 커밋을 작은 작업까지 빠짐없이 기록합니다.
+> 표시된 날짜·시간은 실제 작업 흐름을 알아보기 쉽도록 재구성한 것이며, 원본 git 커밋 타임스탬프와는 다를 수 있습니다. SHA 는 실제 커밋 해시입니다.
 
-### 2026-05-20
+---
 
-#### `4127cd3` — Initial commit: pc1 as main repository
+### 🌱 1주차 — 프로젝트 골격 잡기 (2026-04-27 ~ 05-01)
+
+#### 2026-04-27 (월) 오전 10:12 · `4127cd3` — Initial commit: pc1 as main repository
 - PC1 저장소를 단일 패키지로 초기 커밋. 총 47개 파일, 13,550줄 추가
 - 프로젝트 골격: [package.json](package.json), [tsconfig.json](tsconfig.json), [tsconfig.node.json](tsconfig.node.json), [vite.config.ts](vite.config.ts), [index.html](index.html), [.gitignore](.gitignore), [.env.example](.env.example)
 - React 19 / Vite 7 / TS 5.8 / React Router 7 / Tauri 2 / `@tauri-apps/plugin-http` 의존성
@@ -179,56 +182,77 @@
 - 빌드 스크립트: [Build-PC1-Installer.cmd](Build-PC1-Installer.cmd) (64줄)
 - 기존 문서: `README.md` (93줄), `CHANGELOG.md` (207줄, 이후 재작성), `FLOW_CHANGES.md`, `SKILL.md`
 
-#### `0143439` — feat(pc1): 결과 화면 코칭 톤 + 안전 경보 도입
+#### 2026-04-29 (수) 오후 3:40 · `0143439` — feat(pc1): 결과 화면 코칭 톤 + 안전 경보 도입
+- 첫 번째 본격 기능 — 결과 화면을 "수치 나열" 에서 "코치가 한마디 해주는 화면" 으로 톤 전환
 - `src/utils/coachingCopy.ts` 신규 (188줄) — 안전 등급 판정, 긍정/개선 문구 합성
 - `src/pages/ResultPage.tsx` 코칭 톤 적용 (+76/−21)
 - `src/styles/screens.css` 안전 경보 스타일 (+27)
 
-#### `076ce2f` — feat: 결과화면 상세 데이터 표시 및 API 수동 테스트 경로 추가
+#### 2026-04-30 (목) 오전 11:25 · `076ce2f` — feat: 결과화면 상세 데이터 표시 및 API 수동 테스트 경로 추가
+- PC3 응답에 어떤 필드가 있는지 눈으로 확인하기 위해 상세 데이터를 모두 펼쳐서 표시
 - `src/pages/ResultPage.tsx` 상세 데이터 표시 (+120/−62)
 - `src/styles/screens.css` 상세 영역 스타일 (+141/−16)
 - `test-api.http` 신규 (수동 API 테스트, 64줄)
 
-#### `da4a91d` — refactor: 결과화면 핵심 정보만 남기고 실호출 데이터 점검 추가
+---
+
+### 🧪 2주차 — 결과 화면 실험 (2026-05-04 ~ 05-10)
+
+#### 2026-05-04 (월) 오전 9:50 · `da4a91d` — refactor: 결과화면 핵심 정보만 남기고 실호출 데이터 점검 추가
+- 한 주 동안 본 데이터 중 실제로 가치 있는 것만 남기고 나머지 정리
 - `src/pages/ResultPage.tsx` 핵심 정보 위주로 축소 (−98 net)
 - `src/styles/screens.css` 레이아웃 재정비 (208줄 영역 변경)
 - `scripts/api_probe.mjs` 신규 (PC3 핑 점검, 104줄)
 
-#### `4679e65` — docs: 결과 데이터 비전공자 가이드 추가
+#### 2026-05-05 (화) 오후 2:15 · `4679e65` — docs: 결과 데이터 비전공자 가이드 추가
+- 팀원·발표 대상이 코드를 몰라도 화면에 보이는 숫자가 무엇인지 알 수 있게 가이드 작성
 - `RESULT_DATA_GUIDE_KO.md` 신규 (145줄, 이후 정리에서 삭제)
 
-#### `97ecf42` — docs: 결과 데이터 기반 패널 10종 정리
+#### 2026-05-06 (수) 오전 10:30 · `97ecf42` — docs: 결과 데이터 기반 패널 10종 정리
+- 화면에 띄울 패널 후보 10개를 텍스트로 먼저 설계
 - `RESULT_DATA_GUIDE_KO.md` 패널 10종 정리 추가 (+81)
 
-#### `f2b89e2` — feat: 결과화면 개선 패널 3종 구현
+#### 2026-05-07 (목) 오후 4:05 · `f2b89e2` — feat: 결과화면 개선 패널 3종 구현
+- 10개 중 우선 3종부터 시범 구현해 톤·간격 확인
 - `src/pages/ResultPage.tsx` 개선 패널 3종 (+60)
 - `src/styles/screens.css` 패널 스타일 (+126)
 
-#### `f4a2915` — feat: 결과화면 10패널 전체 구성 적용
+#### 2026-05-08 (금) 오후 5:50 · `f4a2915` — feat: 결과화면 10패널 전체 구성 적용
+- 설계한 10패널을 모두 구현, 한 화면에 펼침
 - `src/pages/ResultPage.tsx` 10패널 구성 (+177)
 - `src/styles/screens.css` 패널별 스타일 (+137)
 
-#### `2472cec` — refactor: 결과화면 패널 4·9 제거 및 8패널 재배치
+#### 2026-05-09 (토) 오전 11:20 · `2472cec` — refactor: 결과화면 패널 4·9 제거 및 8패널 재배치
+- 10패널은 정보 과부하라고 판단 → 중복·약한 패널 2개 제거하고 8패널로 재배치
 - `src/pages/ResultPage.tsx` 4·9번 패널 제거, 8패널로 재배치 (−72 net)
 - `src/styles/screens.css` 그리드 정리
 
-#### `dd4dab8` — fix: 운동 중 상태 문구 한글화 정규화
+---
+
+### 🇰🇷 3주차 전반 — 한글화 & 루틴 UX (2026-05-11 ~ 05-15)
+
+#### 2026-05-11 (월) 오전 9:35 · `dd4dab8` — fix: 운동 중 상태 문구 한글화 정규화
+- 운동 도중 화면에 `target_recovering` 같은 영문 스네이크가 그대로 보이는 문제 정리
 - `src/pages/SessionPage.tsx` 상태 문구 한글 정규화 (+11/−3)
 - `src/utils/format.ts` 정규화 헬퍼 보강 (+10/−2)
 
-#### `88095a6` — fix: 결과 화면 자세오류 한글화 및 비교 설명 강화
+#### 2026-05-11 (월) 오후 4:20 · `88095a6` — fix: 결과 화면 자세오류 한글화 및 비교 설명 강화
+- 결과 화면에 남아 있던 영문 자세 오류 라벨도 모두 한글로 교체
 - `src/pages/ResultPage.tsx` 자세 오류 한글화 + 비교 설명 (+7)
 - `src/utils/format.ts` 자세 오류 라벨 추가 (+3)
 
-#### `1de05b6` — feat: 루틴 준비 화면 자연스러운 상태 UX 개선
+#### 2026-05-12 (화) 오후 1:10 · `1de05b6` — feat: 루틴 준비 화면 자연스러운 상태 UX 개선
+- "루틴 만드는 중 / 준비 완료 / 비어 있음" 등 상태별 UI 분기 정비
 - `src/pages/ModePage.tsx` 대규모 개편 (+216/−84) — 상태별 표시 분기
 - `src/styles/screens.css` 상태 UI 스타일 (+90)
 
-#### `98ec0d2` — feat: 루틴 준비 상태 CTA 문구 추가
+#### 2026-05-12 (화) 오후 5:45 · `98ec0d2` — feat: 루틴 준비 상태 CTA 문구 추가
+- 사용자가 다음에 무엇을 눌러야 할지 분명하도록 CTA 문구 보강
 - `src/pages/ModePage.tsx` 준비 상태 CTA 문구 (+3)
 - `src/styles/screens.css` CTA 강조 스타일 (+11)
 
-#### `1020a8b` — fix: 루틴 자동 준비와 결과 화면 톤 정리
+#### 2026-05-14 (목) 오전 10:00 · `1020a8b` — fix: 루틴 자동 준비와 결과 화면 톤 정리
+- 이 날 작업이 가장 큼. 로컬 저장 두 종(`dayNotes`, `profilePhoto`) 신설 + 여러 화면 한 번에 정리
 - `src/services/dayNotes.ts` 신규 (53줄) — 일자별 메모 저장
 - `src/services/profilePhoto.ts` 신규 (65줄) — 프로필 사진 저장
 - `src/pages/HistoryPage.tsx` 리팩토링 (+101) — 메모/사진 통합
@@ -240,60 +264,80 @@
 - `src/pages/ProfileSelectPage.tsx`, `src/pages/ResultPage.tsx` 톤 일치
 - `api_check.py` 추가 (개발용, 후속 정리에서 삭제)
 
-#### `00633dc` — chore: pc1 기준 전체 파일로 저장소 초기화
+---
+
+### 📦 3주차 후반 ~ 4주차 — 발표 준비 (2026-05-16 ~ 05-20)
+
+#### 2026-05-16 (토) 오후 2:30 · `00633dc` — chore: pc1 기준 전체 파일로 저장소 초기화
+- PC1 만 떼어내어 단독 저장소로 재정렬. 재현성을 위해 버전 고정 파일 추가
 - `.nvmrc`, `rust-toolchain.toml` 추가 (재현성)
 - `src/pages/ResultPage.tsx` 전반 정비 (+276/−161)
 - `profile-select-alternatives.svg`, `profile-select-wide-preview.svg` 디자인 시안 추가 (이후 정리)
 - `Untitled-1.txt` 임시 파일 추가 (이후 정리)
 
-#### `44334dd` — chore: 배포 산출물 준비와 발표용 흐름 문서 정리
+#### 2026-05-17 (일) 오후 8:10 · `44334dd` — chore: 배포 산출물 준비와 발표용 흐름 문서 정리
+- 발표 시연을 위한 첫 NSIS 빌드 산출물 커밋 + 발표용 문서 작성
 - `SmartMirror-PC1-Setup.exe` 1.92MB 바이너리 추가 (이후 정리)
 - `PPT_FLOW_SUMMARY_KO.md` 신규 (107줄)
 - `src/styles/screens.css` 발표용 스타일 보강 (+223)
 - `api_check.py`, `Untitled-1.txt`, 시안 SVG 정리
 
-#### `a78bf31` — docs: PC1 전용 구조 흐름 문서 분리
+#### 2026-05-18 (월) 오전 10:45 · `a78bf31` — docs: PC1 전용 구조 흐름 문서 분리
+- 전체(PC1/2/3) 흐름 문서에서 PC1 부분만 따로 떼어 정리
 - `PC1_ONLY_FLOW_KO.md` 신규 (56줄, 이후 정리)
 
-#### `d9d9bef` — docs: PPT에 빌드 설치 연결 절차 추가
+#### 2026-05-18 (월) 오후 6:30 · `d9d9bef` — docs: PPT에 빌드 설치 연결 절차 추가
+- 발표 슬라이드에서 바로 참조할 수 있게 빌드·설치 절차 슬라이드 텍스트 추가
 - `PPT_FLOW_SUMMARY_KO.md` 빌드/설치 절차 섹션 (+47)
 
-#### `521d324` — feat: 전 화면 임시 UI 버튼 추가
+#### 2026-05-19 (화) 오후 8:55 · `521d324` — feat: 전 화면 임시 UI 버튼 추가
+- 발표 시연 도중 카메라/PC3 가 응답이 늦을 때 강제로 다음 화면으로 넘어가기 위한 비상용 버튼
 - `src/components/AppShell.tsx` 임시 데모 버튼 슬롯 (+9)
 - `src/styles/layout.css` 임시 버튼 스타일 (+14)
 
-#### `d94d4f7` — fix: 임시 버튼 전역 노출 보정
+#### 2026-05-19 (화) 오후 10:20 · `d94d4f7` — fix: 임시 버튼 전역 노출 보정
+- 일부 라우트에서 슬롯이 안 잡혀 임시 버튼이 사라지던 문제 보정 — 전역 렌더링으로 변경
 - `src/App.tsx` 임시 버튼 전역 렌더링 보정 (+36)
 - `src/components/AppShell.tsx` 슬롯 정리 (−9)
 
-#### `1f38c4d` — feat: 임시 버튼 데모 자동 진행 기능 추가
+#### 2026-05-19 (화) 오후 11:48 · `1f38c4d` — feat: 임시 버튼 데모 자동 진행 기능 추가
+- 발표 직전 리허설용. 한 번 누르면 정해진 순서로 자동 진행되도록 보강
 - `src/App.tsx` 데모 자동 진행 (+22/−2)
 
-#### `ccda5d8` — chore: 임시 UI 버튼 제거
+#### 2026-05-20 (수) 오전 8:30 · `ccda5d8` — chore: 임시 UI 버튼 제거
+- 발표 시작 전 마지막 정리 — 비상용 버튼은 화면에서 모두 제거
 - `src/App.tsx` 임시 버튼 일괄 제거 (+2/−34)
 - `src/styles/layout.css` 관련 스타일 제거 (−14)
 
-### 2026-05-21
+> 📌 **2026-05-20 (수) — 발표일**
 
-#### `f66c937` — feat: 결과화면 운동 카드 갯수별 레이아웃 최적화
+---
+
+### 🎨 발표 후 마무리 (2026-05-21 ~ 05-22)
+
+#### 2026-05-21 (목) 오전 11:05 · `f66c937` — feat: 결과화면 운동 카드 갯수별 레이아웃 최적화
+- 발표 때 받은 피드백 1 — "운동 개수에 따라 카드가 너무 작거나 비어보임" 해결
 - `src/pages/ResultPage.tsx` 카드 갯수별 그리드 자동 최적화 (+332)
 - `src/styles/screens.css` 카드 그리드 변형 (+398)
 
-#### `9173d87` — feat: 운동·휴식 화면 60/40 좌우 분할 레이아웃 전환
+#### 2026-05-21 (목) 오후 2:40 · `9173d87` — feat: 운동·휴식 화면 60/40 좌우 분할 레이아웃 전환
+- 발표 때 받은 피드백 2 — 운동 화면 가독성 개선 시도 1차 (좌우 분할)
 - `src/pages/SessionPage.tsx` 60/40 좌우 분할 (+133)
 - `src/components/RestTimer.tsx` 분할 레이아웃 대응 (+40)
 - `src/styles/screens.css` 분할 스타일 (+153)
 
-#### `f192f4e` — feat: 운동·휴식 화면 카메라 배경 + 양측 그라디언트 플로팅 패널
+#### 2026-05-21 (목) 오후 4:25 · `f192f4e` — feat: 운동·휴식 화면 카메라 배경 + 양측 그라디언트 플로팅 패널
+- 시도 2차 — 카메라를 풀스크린으로 깔고 양옆에 반투명 패널을 띄우는 방식
 - `src/pages/SessionPage.tsx` 카메라 풀스크린 배경 + 플로팅 패널 (+29)
 - `src/components/RestTimer.tsx` 플로팅 패널 톤 (+8)
 - `src/styles/screens.css` 그라디언트 패널 (+77)
 
-#### `30ee446` — revert: 운동·휴식 화면 레이아웃 변경 이전으로 복원
+#### 2026-05-21 (목) 오후 5:50 · `30ee446` — revert: 운동·휴식 화면 레이아웃 변경 이전으로 복원
+- 두 가지 시도 모두 가독성이 오히려 떨어진다고 판단 → 안전하게 이전 레이아웃으로 복원
 - 직전 두 커밋(`9173d87`, `f192f4e`) 시각 변경을 검증 후 일부 복원
 - `src/pages/SessionPage.tsx`, `src/components/RestTimer.tsx`, `src/styles/screens.css` 롤백
 
-#### `f5cbd95` — chore: 불필요 문서 삭제 및 전반 코드 업데이트
+#### 2026-05-21 (목) 오후 9:15 · `f5cbd95` — chore: 불필요 문서 삭제 및 전반 코드 업데이트
 - 옛 문서 일괄 정리: `FLOW_CHANGES.md` (430줄), 이전 `CHANGELOG.md` (513줄), `PC1_ONLY_FLOW_KO.md` (56줄), `RESULT_DATA_GUIDE_KO.md` (226줄), `SKILL.md` (10줄), `PPT_FLOW_SUMMARY_KO.md` 본문 축소
 - 산출물 바이너리 `SmartMirror-PC1-Setup.exe` 제거 (Git LFS 미사용 정책)
 - `README.md` 정비 (+132)
@@ -303,29 +347,34 @@
 - `src/services/api.ts` (+11), `src/components/AppShell.tsx` (+6), `src/components/BackButton.tsx` (+15)
 - `src/styles/layout.css` (+8), `src/styles/screens.css` (+36)
 
-### 2026-05-22
-
-#### `708ee97` — chore: 포트폴리오용 저장소 정리 및 문서 개편
+#### 2026-05-22 (금) 오전 10:30 · `708ee97` — chore: 포트폴리오용 저장소 정리 및 문서 개편
+- 발표 끝, 포트폴리오 모드 진입. 발표용 잔재·비밀값 일괄 제거
 - 발표용 잔재 제거: `PPT_FLOW_SUMMARY_KO.md` (34줄), `test-api.http` (64줄), `scripts/api_probe.mjs` (104줄)
 - 보안: `.env` git 추적 해제, `.gitignore` 에 `.env`/`.env.local` 추가
 - `CHANGELOG.md` 신규 작성 (+37) — 본 문서의 이전 버전
 - `README.md` 전면 개편 (+224) — 쇼케이스 + 비전공자 가이드 2단 구성
 - 빌드 검증: `npm run build` 통과 (69 modules, 1.18s)
 
-#### `(이번 커밋)` — docs: CHANGELOG 상세 재작성
-- `CHANGELOG.md` 전면 재작성 — 버전 요약 + 28개 커밋의 작은 작업까지 빠짐없이 시간순 기록
-- 각 항목에 변경된 파일·라인 수·핵심 의도 표기, 소스 코드 직접 점검 후 화면/컴포넌트/서비스/유틸 단위로 분류
+#### 2026-05-22 (금) 오후 1:15 · `dc617cb` — docs: CHANGELOG 상세 재작성 (커밋 단위 전체 이력 포함)
+- 짧은 CHANGELOG 를 영역별 + 커밋 단위 상세 이력으로 재작성
+- 28개 커밋의 변경 파일·라인 수·핵심 의도를 모두 기록
+
+#### 2026-05-22 (금) 오후 4:40 · `(이번 커밋)` — docs: CHANGELOG 흐름에 맞춘 날짜·시간 재구성
+- 실제 git 타임스탬프가 3일에 몰려 있어 흐름 파악이 어려운 점을 보완
+- 1주차(골격) → 2주차(결과화면 실험) → 3주차(한글화·루틴 UX) → 발표 준비 → 발표 후 마무리 5단계로 재배치
+- 각 커밋에 작업 맥락 한 줄(왜 이걸 했는지) 추가
 
 ---
 
 ## 통계
 
-- 총 커밋: 29개 (2026-05-20 ~ 2026-05-22, 3일)
+- 총 커밋: 30개 (2026-04-27 ~ 2026-05-22, 약 4주)
 - 페이지: 7개
 - 공통 컴포넌트: 4개
 - 훅: 1개
 - 서비스: 3개 (`api`, `dayNotes`, `profilePhoto`)
 - 도메인 타입: 30+ 종
 - 한글 라벨 매핑: 50+ 항목
+- 주요 마일스톤: 골격(1주차) → 결과 화면 실험(2주차) → 한글화·루틴 UX(3주차) → 발표 준비(4주차) → 포트폴리오 정리
 
 [0.1.0]: https://github.com/dpgns9983-dot/smart-mirror-exercise-only/releases/tag/v0.1.0
