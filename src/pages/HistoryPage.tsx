@@ -424,7 +424,7 @@ export default function HistoryPage({ navigate }: { navigate: NavigateFunction }
           <div>
             <span className="eyebrow">DAY DETAIL</span>
             <h2>{shortDate(selectedDate)} 기록</h2>
-            <p>{selectedDay?.focus ? `${selectedDay.focus} 루틴을 기준으로 저장된 기록입니다.` : "선택한 날짜에 저장된 PC3 기록을 모아 보여줍니다."}</p>
+            <p>{selectedDay?.focus ? `${selectedDay.focus} 루틴을 기준으로 저장된 기록입니다.` : "선택한 날짜에 저장된 운동 기록을 모아 보여줍니다."}</p>
           </div>
           <div className="history-day-actions">
             <button type="button" className="button button--ghost" onClick={() => navigate("/mode", { replace: true })}>

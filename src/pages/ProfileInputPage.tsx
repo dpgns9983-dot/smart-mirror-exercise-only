@@ -35,7 +35,7 @@ export default function ProfileInputPage({ navigate }: { navigate: NavigateFunct
         <section className="profile-wizard-card profile-wizard-card--compact">
           <span className="eyebrow">PROFILE SETUP</span>
           <h1 className="optical-ko-title">프로필을 먼저 선택해주세요.</h1>
-          <p>기본정보를 저장하려면 PC3 프로필이 먼저 필요합니다.</p>
+          <p>기본정보를 저장하려면 프로필 생성이 먼저 필요합니다.</p>
           <button type="button" className="button button--primary" onClick={() => navigate("/profile-select")}>
             프로필 선택
           </button>

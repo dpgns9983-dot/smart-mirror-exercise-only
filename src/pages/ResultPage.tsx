@@ -92,7 +92,7 @@ function balanceLabel(leftCount: number | null, rightCount: number | null): stri
 }
 
 function detailText(item: EvidenceItem): string {
-  return item.summary ?? item.text ?? item.title ?? item.source_title ?? "PC3가 함께 전달한 참고 근거입니다.";
+  return item.summary ?? item.text ?? item.title ?? item.source_title ?? "함께 전달된 참고 근거입니다.";
 }
 
 function detailLabel(item: EvidenceItem): string {
@@ -217,7 +217,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
   const representativeSummary = [...exerciseSummaries].reverse().find((item) => item.hasResult) ?? exerciseSummaries[0] ?? null;
   const representativeQuality = representativeSummary?.measurementQuality ?? "확인 필요";
   const representativeExerciseLabel = representativeSummary?.label ?? "오늘 루틴";
-  const savedLabel = storedResult ? "PC3 저장 결과 확인 완료" : result?.session_id ? "이번 세션 기록" : "로컬 기록";
+  const savedLabel = storedResult ? "저장 결과 확인 완료" : result?.session_id ? "이번 세션 기록" : "로컬 기록";
   const routineStatus = routineStatusLabel(completedCount, totalExerciseCount, skippedCount);
   const routineTitle = workoutRun?.routine.title ?? app.selectedRoutine?.title ?? "오늘 루틴";
   const routineFocus = workoutRun?.day.focus || workoutRun?.day.weeklyFocus || app.selectedRoutine?.description || "오늘 루틴의 진행 기록을 기준으로 정리했어요.";
@@ -445,7 +445,7 @@ export default function ResultPage({ navigate }: { navigate: NavigateFunction })
                 <p>자세 오류 변화 {postureErrorDelta == null ? "비교 기록 없음" : `${postureErrorDelta > 0 ? "+" : ""}${postureErrorDelta}개`}</p>
               </article>
               <article className="result-detail-card__wide">
-                <h3>PC3/PC2 근거</h3>
+                <h3>분석 근거</h3>
                 {allEvidence.length ? (
                   <div className="result-evidence-list">
                     {allEvidence.slice(0, 4).map((item, index) => (

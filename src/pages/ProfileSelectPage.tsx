@@ -313,7 +313,7 @@ export default function ProfileSelectPage({ navigate }: { navigate: NavigateFunc
             <span className="eyebrow">DELETE PROFILE</span>
             <h2 id="profile-delete-title">정말 삭제할까요?</h2>
             <p>
-              <strong>{pendingDeleteProfile.name}</strong> 프로필을 삭제하면 PC3에 저장된 프로필 목록에서도 제거됩니다.
+              <strong>{pendingDeleteProfile.name}</strong> 프로필을 삭제하면 저장된 프로필 목록에서도 제거됩니다.
             </p>
             <div className="footer-actions">
               <button type="button" className="button button--ghost" onClick={() => setPendingDeleteProfile(null)} disabled={busyId === pendingDeleteProfile.id}>

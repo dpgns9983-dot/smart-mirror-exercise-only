@@ -13,7 +13,7 @@
 ## [0.1.0] - 2026-05-22
 
 발표 직후 포트폴리오용으로 저장소를 정리한 첫 공개 버전입니다.
-약 4주(2026-04-27 ~ 05-22) 동안 초기 커밋부터 정리 커밋까지 총 30개의 커밋이 누적되었습니다.
+약 4주(2026-04-27 ~ 05-22) 동안 초기 커밋부터 문서·표현 정리 커밋까지 총 31개의 커밋이 누적되었습니다.
 
 ### Added (추가)
 
@@ -124,6 +124,10 @@
 - 포트폴리오용 README ([README.md](README.md))
   - 위쪽: 소개, 시스템 구조도, 화면 흐름, 기술 스택, 학습 포인트
   - 아래쪽: 비전공자 가이드 (사전 준비 → clone → install → `.env` → 개발 실행 → 설치파일 빌드 → 설치/실행 경로 → FAQ)
+- 포트폴리오 문서 묶음 ([portfolio/README.md](portfolio/README.md), [portfolio/case-studies/smart-mirror.md](portfolio/case-studies/smart-mirror.md), [portfolio/resume-notes.md](portfolio/resume-notes.md))
+  - 포트폴리오 소개문, 프로젝트 케이스 스터디, 이력서/면접용 요약 문구를 저장소 내부에 분리 정리
+- 흐름 변경 메모 ([FLOW_CHANGES.md](FLOW_CHANGES.md))
+  - 발표 준비 → 포트폴리오 정리까지의 흐름 변화와 의사결정을 한국어로 요약
 - 변경 이력 ([CHANGELOG.md](CHANGELOG.md)) — 본 문서
 
 ### Changed (변경)
@@ -135,6 +139,7 @@
 - BackButton 의 시각 위계/터치 영역 조정 ([src/components/BackButton.tsx](src/components/BackButton.tsx))
 - AppShell 의 임시 데모 버튼 영역 제거 후 정리 ([src/components/AppShell.tsx](src/components/AppShell.tsx))
 - Tauri capability JSON 권한 범위 정리 ([src-tauri/capabilities/default.json](src-tauri/capabilities/default.json))
+- 사용자 화면 문구에서 내부 시스템 명칭 `PC3` 노출을 줄이고, `운동 기록`, `오늘 루틴`, `분석 근거` 같은 사용자 중심 표현으로 정리 ([src/pages/BaselineSetupPage.tsx](src/pages/BaselineSetupPage.tsx), [src/pages/HistoryPage.tsx](src/pages/HistoryPage.tsx), [src/pages/ModePage.tsx](src/pages/ModePage.tsx), [src/pages/ProfileInputPage.tsx](src/pages/ProfileInputPage.tsx), [src/pages/ProfileSelectPage.tsx](src/pages/ProfileSelectPage.tsx), [src/pages/ResultPage.tsx](src/pages/ResultPage.tsx))
 
 ### Fixed (수정)
 - 루틴이 자동으로 준비되지 않던 문제 보정 (`fix: 루틴 자동 준비와 결과 화면 톤 정리`)
@@ -147,7 +152,7 @@
 - 개발 중 사용하던 수동 API 테스트 파일 `test-api.http`
 - PC3 연결 점검 스크립트 `scripts/api_probe.mjs`
 - 데모용 화면 전역 임시 UI 버튼 (`chore: 임시 UI 버튼 제거`)
-- 옛 산출물·메모 파일들: `FLOW_CHANGES.md`, `PC1_ONLY_FLOW_KO.md`, `RESULT_DATA_GUIDE_KO.md`, `SKILL.md`, `Untitled-1.txt`, `api_check.py`, `profile-select-alternatives.svg`, `profile-select-wide-preview.svg`, 이전 `SmartMirror-PC1-Setup.exe` 바이너리
+- 옛 산출물·메모 파일들: `PC1_ONLY_FLOW_KO.md`, `RESULT_DATA_GUIDE_KO.md`, `SKILL.md`, `Untitled-1.txt`, `api_check.py`, `profile-select-alternatives.svg`, `profile-select-wide-preview.svg`, 이전 `SmartMirror-PC1-Setup.exe` 바이너리
 - Git 추적에서 로컬 환경 파일 `.env` 제외 (저장소엔 `.env.example` 만 유지)
 
 ### Security (보안)
@@ -359,16 +364,21 @@
 - 짧은 CHANGELOG 를 영역별 + 커밋 단위 상세 이력으로 재작성
 - 28개 커밋의 변경 파일·라인 수·핵심 의도를 모두 기록
 
-#### 2026-05-22 (금) 오후 4:40 · `(이번 커밋)` — docs: CHANGELOG 흐름에 맞춘 날짜·시간 재구성
+#### 2026-05-22 (금) 오후 4:40 · `2db6469` — docs: CHANGELOG 흐름에 맞춘 날짜·시간 재구성
 - 실제 git 타임스탬프가 3일에 몰려 있어 흐름 파악이 어려운 점을 보완
 - 1주차(골격) → 2주차(결과화면 실험) → 3주차(한글화·루틴 UX) → 발표 준비 → 발표 후 마무리 5단계로 재배치
 - 각 커밋에 작업 맥락 한 줄(왜 이걸 했는지) 추가
+
+#### 2026-05-22 (금) 오후 7:10 · `(이번 커밋)` — docs: 포트폴리오 문서 초안 및 사용자 표현 정리
+- `portfolio/` 폴더에 포트폴리오 소개문, Smart Mirror 케이스 스터디, 이력서/면접 메모 초안 추가
+- 화면 문구에서 내부 시스템 명칭 `PC3` 노출을 줄이고 사용자 중심 표현으로 일괄 정리
+- 빠졌던 CHANGELOG 주차 헤더/통계와 흐름 메모 문서를 복구
 
 ---
 
 ## 통계
 
-- 총 커밋: 30개 (2026-04-27 ~ 2026-05-22, 약 4주)
+- 총 커밋: 31개 (2026-04-27 ~ 2026-05-22, 약 4주)
 - 페이지: 7개
 - 공통 컴포넌트: 4개
 - 훅: 1개

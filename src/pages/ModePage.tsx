@@ -138,7 +138,7 @@ function buildRoutineReasonCards(day: RoutineDay | null, estimatedMinutes?: numb
       {
         label: searching ? "확인 중" : "대기",
         title: searching ? "루틴 찾는 중" : "루틴 없음",
-        body: searching ? "PC3에서 오늘 루틴을 확인하고 있습니다." : "달력에 루틴이 배정되면 여기에 표시됩니다.",
+        body: searching ? "오늘 루틴을 확인하고 있습니다." : "달력에 루틴이 배정되면 여기에 표시됩니다.",
       },
       {
         label: "운동 준비",
@@ -160,7 +160,7 @@ function buildRoutineReasonCards(day: RoutineDay | null, estimatedMinutes?: numb
     {
       label: "오늘의 목적",
       title: chooseRoutineText(day.focus, day.weeklyFocus, day.message) || "오늘 루틴의 목표를 확인해요",
-      body: chooseRoutineText(day.summary, day.weeklyFocus) || "PC3가 달력에 배정한 루틴을 기준으로 오늘 할 운동을 정리했어요.",
+      body: chooseRoutineText(day.summary, day.weeklyFocus) || "AI가 달력에 배정한 루틴을 기준으로 오늘 할 운동을 정리했어요.",
     },
     {
       label: "운동 포인트",
@@ -210,7 +210,7 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
   const selectedSummary = selectedDayLoading
     ? "선택한 날짜의 루틴을 불러오는 중입니다."
     : routineLoading && !selectedDayDetail
-      ? "PC3에서 오늘 루틴을 찾고 있습니다."
+      ? "오늘 루틴을 찾고 있습니다."
       : clampText(
           selectedDayDetail
             ? chooseRoutineText(selectedDayDetail.summary, selectedDayDetail.weeklyFocus) || "오늘 운동을 간단히 확인하세요."
@@ -452,7 +452,7 @@ export default function ModePage({ navigate }: { navigate: NavigateFunction }) {
             <div className="routine-reason-card__head">
               <span className="eyebrow">추천 이유</span>
               <strong>왜 이 루틴인가요?</strong>
-              <p>{selectedDayDetail ? "운동 전에 알아두면 좋은 내용만 간단히 정리했어요." : "PC3에서 오늘 루틴을 찾고 있습니다."}</p>
+              <p>{selectedDayDetail ? "운동 전에 알아두면 좋은 내용만 간단히 정리했어요." : "오늘 루틴을 찾고 있습니다."}</p>
             </div>
             <div className="routine-reason-grid">
               {routineReasonCards.map((card) => (

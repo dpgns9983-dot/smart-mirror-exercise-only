@@ -217,7 +217,7 @@ export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunc
         return;
       }
 
-      setMessage(`${SLOT_LABEL[slot]} 프레임을 PC3가 확인하고 있습니다.`);
+      setMessage(`${SLOT_LABEL[slot]} 프레임을 확인하고 있습니다.`);
       const result = await captureBaseline(profile.id, slot, frame.blob);
       if (!result.valid) {
         const reason = result.reason ?? `${SLOT_LABEL[slot]} 위치를 조금 더 중앙에 맞춰주세요.`;
@@ -274,7 +274,7 @@ export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunc
 
     const readyElapsed = cameraReadyAt ? Date.now() - cameraReadyAt : 0;
     const warmupRemaining = Math.max(0, CAMERA_WARMUP_MS - readyElapsed);
-    setMessage(warmupRemaining > 0 ? "카메라 노출을 안정화하고 있습니다." : `${SLOT_LABEL[currentSlot]} 프레임을 맞추면 PC3 확인 후 촬영 버튼이 켜집니다.`);
+    setMessage(warmupRemaining > 0 ? "카메라 노출을 안정화하고 있습니다." : `${SLOT_LABEL[currentSlot]} 프레임을 맞추면 촬영 버튼이 켜집니다.`);
 
     let cancelled = false;
     const timer = window.setTimeout(() => {
@@ -327,7 +327,7 @@ export default function BaselineSetupPage({ navigate }: { navigate: NavigateFunc
         <aside className={`capture-countdown ${submitting ? "is-saving" : "is-scanning"} ${poseReady.ready ? "is-ready" : ""}`.trim()} aria-live="polite">
           <span>{poseReady.ready ? "촬영 가능" : submitting ? "위치 확인" : "자동 인식"}</span>
           <strong>{submitting ? "..." : captureStateLabel}</strong>
-          <em>{poseReady.ready ? "가이드가 맞았습니다. 촬영하기를 눌러 저장하세요." : submitting ? "PC3가 위치를 확인하고 있습니다." : `${SLOT_LABEL[currentSlot]} 위치가 맞으면 촬영 버튼이 켜집니다.`}</em>
+          <em>{poseReady.ready ? "가이드가 맞았습니다. 촬영하기를 눌러 저장하세요." : submitting ? "위치를 확인하고 있습니다." : `${SLOT_LABEL[currentSlot]} 위치가 맞으면 촬영 버튼이 켜집니다.`}</em>
         </aside>
       ) : null}
       <aside className="capture-toast" role={error ? "alert" : "status"}>
