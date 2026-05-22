@@ -12,6 +12,10 @@ dist
 dist-ssr
 *.local
 
+# Local environment (keep .env.example only)
+.env
+.env.local
+
 # Tauri/Rust generated output
 src-tauri/target
 src-tauri/gen
